@@ -3,7 +3,7 @@ import { Box, Button, Flex, Text } from "@chakra-ui/react";
 
 import { useState } from "react";
 
-export default function Sidebar() {
+export default function Sidebar({ data, onOpen }) {
     return (
         <Box
             w="300px"
@@ -21,10 +21,15 @@ export default function Sidebar() {
                 textAlign="center"
             >
                 <Box p={5}>Header</Box>
+                <Box flex={1} />
                 <Box p={5}>
-                    <Button>New Photo</Button>
+                    <Button
+                        onClick={onOpen}
+                        disabled={Object.keys(data).length <= 0}
+                    >
+                        New Photo
+                    </Button>
                 </Box>
-                <Box flex={1}></Box>
                 <Box p={5}>
                     <Button>{"<<"}</Button>
                 </Box>
