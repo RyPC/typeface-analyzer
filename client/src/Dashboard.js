@@ -10,6 +10,10 @@ import {
     Tooltip,
     ResponsiveContainer,
     Label,
+    PieChart,
+    Pie,
+    Cell,
+    Legend,
 } from "recharts";
 
 import Papa from "papaparse";
@@ -121,13 +125,64 @@ export default function Dashboard({ data, setData }) {
                 wrap="wrap"
                 gap={4}
                 w="full"
-                height="100%"
                 justify="center"
                 flexDirection="row"
                 padding={10}
             >
                 {Object.keys(data).length > 0 ? (
-                    [0, 0].map((_, row) => (
+                    <>
+                        {/* Bar Graphs */}
+                        {[0, 0].map((_, row) => (
+                            <Box
+                                backgroundColor="#55627E"
+                                flex={1}
+                                color="white"
+                                rounded="30px"
+                                alignContent="center"
+                                textAlign="center"
+                                p={4}
+                            >
+                                <VStack>
+                                    <Text>
+                                        Counts of typefaces in {chartFocus[row]}
+                                    </Text>
+                                    <ResponsiveContainer
+                                        width={600}
+                                        height={300}
+                                    >
+                                        <BarChart data={data[chartFocus[row]]}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis
+                                                dataKey="typeface"
+                                                stroke="white"
+                                            />
+                                            <YAxis stroke="white" />
+                                            <Tooltip stroke="black" />
+                                            <Bar
+                                                dataKey="count"
+                                                fill="#8884d8"
+                                            />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                    <Select
+                                        onChange={(e) => {
+                                            const newChartFocus = [
+                                                ...chartFocus,
+                                            ];
+                                            newChartFocus[row] = e.target.value;
+                                            setChartFocus(newChartFocus);
+
+                                            console.log(newChartFocus);
+                                        }}
+                                    >
+                                        {Object.keys(data).map((muni) => (
+                                            <option>{muni}</option>
+                                        ))}
+                                    </Select>
+                                </VStack>
+                            </Box>
+                        ))}
+                        {/* Pie Chart */}
                         <Box
                             backgroundColor="#55627E"
                             flex={1}
@@ -139,36 +194,58 @@ export default function Dashboard({ data, setData }) {
                         >
                             <VStack>
                                 <Text>
-                                    Counts of typefaces in {chartFocus[row]}
+                                    Distribution of Typefaces by Municipality
                                 </Text>
                                 <ResponsiveContainer width={600} height={300}>
-                                    <BarChart data={data[chartFocus[row]]}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis
-                                            dataKey="typeface"
-                                            stroke="white"
+                                    <PieChart>
+                                        <Pie
+                                            data={Object.keys(data).map(
+                                                (municipality) => ({
+                                                    name: municipality,
+                                                    value: data[
+                                                        municipality
+                                                    ].reduce(
+                                                        (sum, item) =>
+                                                            sum + item.count,
+                                                        0
+                                                    ),
+                                                })
+                                            )}
+                                            cx="50%"
+                                            cy="50%"
+                                            labelLine={true}
+                                            label={({ name, value }) =>
+                                                `${name}: ${value}`
+                                            }
+                                            outerRadius={80}
+                                            fill="#8884d8"
+                                            dataKey="value"
+                                        >
+                                            {Object.keys(data).map(
+                                                (entry, index) => (
+                                                    <Cell
+                                                        key={`cell-${index}`}
+                                                        fill={`hsl(${
+                                                            (index * 360) /
+                                                            Object.keys(data)
+                                                                .length
+                                                        }, 70%, 60%)`}
+                                                    />
+                                                )
+                                            )}
+                                        </Pie>
+                                        <Tooltip
+                                            formatter={(value, name) => [
+                                                `${value} typefaces`,
+                                                name,
+                                            ]}
                                         />
-                                        <YAxis stroke="white" />
-                                        <Tooltip stroke="black" />
-                                        <Bar dataKey="count" fill="#8884d8" />
-                                    </BarChart>
+                                        <Legend />
+                                    </PieChart>
                                 </ResponsiveContainer>
-                                <Select
-                                    onChange={(e) => {
-                                        const newChartFocus = [...chartFocus];
-                                        newChartFocus[row] = e.target.value;
-                                        setChartFocus(newChartFocus);
-
-                                        console.log(newChartFocus);
-                                    }}
-                                >
-                                    {Object.keys(data).map((muni) => (
-                                        <option>{muni}</option>
-                                    ))}
-                                </Select>
                             </VStack>
                         </Box>
-                    ))
+                    </>
                 ) : (
                     <Box p={5}>
                         <label for="csv_upload">
