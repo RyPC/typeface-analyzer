@@ -38,80 +38,160 @@ export default function Dashboard({ data, setData }) {
         reader.readAsText(file); // Read the file as text
     };
 
-    // Parses CSV to...
+    // Parses CSV to JSON
     const parseCSV = (csvContent) => {
         Papa.parse(csvContent, {
             complete: (result) => {
                 const rows = result.data;
+                const header = rows[0]; // Get the header row
+                const rawData = rows.slice(1); // Get the data rows
 
-                if (rows.length < 2) return;
+                // Go through data and include non-empty entries
+                const data = [];
+                rawData.forEach((row) => {
+                    const photo = {};
 
-                const header = rows[0];
-                const typefaceCols = header
-                    .map((col, i) => ({ col, i }))
-                    .filter((item) => item.col.includes("Typeface Style"))
-                    .map((item) => item.i);
+                    let currentSubstrate = null;
+                    let currentTypeface = null;
 
-                const municipalityIndex = header.indexOf("Municipality");
+                    // Go through all photo data and add to photo object
+                    for (let i = 0; i < header.length; i++) {
+                        const key = header[i];
+                        const value = row[i];
 
-                const records = [];
-
-                for (let i = 1; i < rows.length; i++) {
-                    const row = rows[i];
-                    const municipality = row[municipalityIndex];
-                    const fontsSet = new Set();
-
-                    typefaceCols.forEach((colIndex) => {
-                        const value = row[colIndex];
-                        if (value) {
-                            const fonts = value
-                                .split(",")
-                                .map((f) => f.trim())
-                                .filter((f) => f !== "");
-                            fonts.forEach((f) => fontsSet.add(f));
+                        // Iniital photo data conditions
+                        if (key === "Submission ID") {
+                            photo["id"] = value;
+                        } else if (key === "Initials") {
+                            photo["initials"] = value;
+                        } else if (key === "Municipality") {
+                            photo["municipality"] = value;
+                        } else if (key === "Photo name") {
+                            photo["custom_id"] = value;
+                        } else if (key === "Number of substrates") {
+                            photo["substrateCount"] = value;
+                            photo["substrates"] = [];
                         }
-                    });
 
-                    fontsSet.forEach((font) => {
-                        records.push({
-                            Municipality: municipality,
-                            TypefaceStyle: font,
-                        });
-                    });
-                }
+                        // Multiple substrate conditions
+                        else if (/^Placement/.test(key)) {
+                            // Push old substrate to substrates array
+                            if (currentSubstrate) {
+                                photo["substrates"].push(currentSubstrate);
+                            }
+                            if (value) {
+                                currentSubstrate = {};
+                                currentSubstrate["placement"] = value;
+                            } else {
+                                currentSubstrate = null;
+                            }
+                        } else if (
+                            /^Substrate Notes/.test(key) &&
+                            currentSubstrate
+                        ) {
+                            currentSubstrate["additionalNotes"] = value;
+                        } else if (
+                            /^This isn't really a sign/.test(key) &&
+                            currentSubstrate
+                        ) {
+                            currentSubstrate["thisIsntReallyASign"] = value;
+                        } else if (
+                            /^What is is?/.test(key) &&
+                            currentSubstrate
+                        ) {
+                            currentSubstrate["notASignDescription"] = value;
+                        } else if (
+                            /^Number of typefaces on this substrate/.test(
+                                key
+                            ) &&
+                            currentSubstrate
+                        ) {
+                            currentSubstrate["typefaces"] = [];
+                        }
 
-                // Count occurrences
-                const countMap = {};
-                records.forEach(({ Municipality, TypefaceStyle }) => {
-                    const key = `${Municipality}|||${TypefaceStyle}`.trim();
-                    countMap[key] = (countMap[key] || 0) + 1;
+                        // Multiple typeface conditions
+                        else if (/^Typeface Style/.test(key)) {
+                            // Push old typeface to substrates array
+                            if (currentTypeface) {
+                                currentSubstrate["typefaces"].push(
+                                    currentTypeface
+                                );
+                            }
+                            if (value) {
+                                currentTypeface = {};
+                                currentTypeface["typefaceStyle"] = value
+                                    ? value.split(",").map((s) => s.trim())
+                                    : [];
+                            } else {
+                                currentTypeface = null;
+                            }
+                        } else if (/^Copy/.test(key) && currentTypeface) {
+                            currentTypeface["copy"] = value;
+                        } else if (
+                            /^Lettering Ontology/.test(key) &&
+                            currentTypeface
+                        ) {
+                            currentTypeface["letteringOntology"] = value
+                                ? value.split(",").map((s) => s.trim())
+                                : [];
+                        } else if (
+                            /^Message Function/.test(key) &&
+                            currentTypeface
+                        ) {
+                            currentTypeface["messageFunction"] = value
+                                ? value.split(",").map((s) => s.trim())
+                                : [];
+                        } else if (
+                            /^Covid related/.test(key) &&
+                            currentTypeface
+                        ) {
+                            currentTypeface["covidRelated"] = value === "TRUE";
+                        } else if (
+                            /^Text Notes(?!\?)\b.*/.test(key) &&
+                            currentTypeface
+                        ) {
+                            currentTypeface["additionalNotes"] = value;
+                        }
+
+                        // Extra substrate data conditions
+                        else if (
+                            /^Overall confidence/.test(key) &&
+                            currentSubstrate
+                        ) {
+                            // Push last typeface to substrates array
+                            if (currentTypeface) {
+                                currentSubstrate["typefaces"].push(
+                                    currentTypeface
+                                );
+                                currentTypeface = null;
+                            }
+                            currentSubstrate["confidence"] = value;
+                        } else if (
+                            /^Explain your reasoning/.test(key) &&
+                            currentSubstrate
+                        ) {
+                            currentSubstrate["confidenceReasoning"] = value;
+                        } else if (
+                            /^Any additional information/.test(key) &&
+                            currentSubstrate
+                        ) {
+                            currentSubstrate["additionalInfo"] = value;
+                        }
+                    }
+
+                    // Push last substrate and typeface to arrays
+                    if (currentSubstrate) {
+                        photo["substrates"].push(currentSubstrate);
+                        currentSubstrate = null;
+                    }
+
+                    // Push photo to data array
+                    data.push(photo);
                 });
 
-                // Aggregate data
-                const groupedData = {};
-                for (const key in countMap) {
-                    const [municipality, style] = key.split("|||");
-                    if (!groupedData[municipality])
-                        groupedData[municipality] = {};
-                    groupedData[municipality][style] = countMap[key];
-                }
-
-                // Agregate counts and reformat
-                const counts = {};
-                for (const muni in groupedData) {
-                    counts[muni] = [];
-                    for (const style in groupedData[muni]) {
-                        counts[muni].push({
-                            typeface: style,
-                            count: groupedData[muni][style],
-                        });
-                    }
-                }
-
-                setData(counts);
+                console.log(data);
             },
             header: false, // CSV header manually handled
-            skipEmptyLines: true,
         });
     };
 

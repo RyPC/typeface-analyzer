@@ -116,7 +116,7 @@ export default function App() {
                     />
                 </HStack>
 
-                {/* Optional footer */}
+                {/* Footer */}
                 <Box w="full" py={2} px={6} bg="#000C5C" color="whiteAlpha.800">
                     <Flex justifyContent="space-between" alignItems="center">
                         <Text fontSize="xs">
