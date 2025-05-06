@@ -25,78 +25,12 @@ import {
 
 import { useState } from "react";
 
-const TYPEFACE_STYLES = [
-    "Serif",
-    "Sans serif",
-    "Slab serif",
-    "Script",
-    "Stylized",
-    "Quirky",
-];
-const LETTERINT_ONTOLOGIES = [
-    "Printed",
-    "Decal",
-    "Painted",
-    "Pan channel",
-    "Pan face",
-    "Handmade",
-    "Embossed",
-    "Debossed",
-    "Pen or marker",
-    "Reader board",
-    "Spray paint",
-    "LED",
-    "Other electronic",
-    "Neon",
-    "Tile",
-    "Chalk",
-    "House number",
-    "Ghost sign",
-];
-const PLACEMENTS = [
-    "Window-stuck",
-    "Window-placed",
-    "Awning/canopy",
-    "Blade",
-    "Fascia",
-    "Marquee",
-    "Hanging",
-    "Name-plate",
-    "Painted wall",
-    "Freestanding",
-    "Parapet",
-    "Ground",
-    "Bench",
-    "Flag",
-    "Pole-mounted",
-    "Post and panel",
-    "Pylon",
-    "Banner",
-    "Wall-placed",
-    "Wall-stuck",
-    "Other-stuck",
-    "Snipe",
-    "Graffiti",
-    "Infrastructure",
-    "Memorial",
-    "Sticker",
-];
-const MESSAGE_FUNCTIONS = [
-    "Identification",
-    "Address",
-    "Joint tenant",
-    "Operational information",
-    "Advisement/regulation",
-    "Directory",
-    "Generic information",
-    "Menu of options",
-    "Commemoration",
-    "Street name",
-    "Advertisement",
-    "Wayfinding",
-    "Infrastructure",
-    "Covid-related",
-];
+import {
+    TYPEFACE_STYLES,
+    LETTERING_ONTOLOGIES,
+    PLACEMENTS,
+    MESSAGE_FUNCTIONS,
+} from "./constants";
 
 export default function AddModal({ data, setData, isOpen, onClose }) {
     const [photo, setPhoto] = useState(null);
@@ -325,7 +259,7 @@ export default function AddModal({ data, setData, isOpen, onClose }) {
                                         }
                                     >
                                         <HStack wrap="wrap">
-                                            {LETTERINT_ONTOLOGIES.map((l) => (
+                                            {LETTERING_ONTOLOGIES.map((l) => (
                                                 <Checkbox key={l} value={l}>
                                                     {l}
                                                 </Checkbox>

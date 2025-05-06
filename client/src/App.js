@@ -22,6 +22,11 @@ import { SettingsIcon, InfoIcon } from "@chakra-ui/icons";
 export default function App() {
     const [countData, setCountData] = useState({});
     const { isOpen, onOpen, onClose } = useDisclosure();
+    const [municipalities, setMunicipalities] = useState([]);
+
+    const [view, setView] = useState("municipality"); // "municipality" or "typeface"
+    const [selectedMunicipality, setSelectedMunicipality] = useState("All");
+    const [selectedTypeface, setSelectedTypeface] = useState(null);
 
     return (
         <Box
@@ -95,7 +100,17 @@ export default function App() {
                     spacing={0}
                     overflow="hidden"
                 >
-                    <Sidebar data={countData} onOpen={onOpen} />
+                    <Sidebar
+                        data={countData}
+                        onOpen={onOpen}
+                        view={view}
+                        municipalities={municipalities}
+                        setView={setView}
+                        selectedMunicipality={selectedMunicipality}
+                        setSelectedMunicipality={setSelectedMunicipality}
+                        selectedTypeface={selectedTypeface}
+                        setSelectedTypeface={setSelectedTypeface}
+                    />
                     <Box
                         flex={1}
                         overflowY="auto"
@@ -105,7 +120,12 @@ export default function App() {
                         backdropFilter="blur(10px)"
                         boxShadow="inset 0 4px 12px rgba(0, 0, 0, 0.05)"
                     >
-                        <Dashboard data={countData} setData={setCountData} />
+                        <Dashboard
+                            data={countData}
+                            setData={setCountData}
+                            view={view}
+                            setMunicipalities={setMunicipalities}
+                        />
                     </Box>
 
                     <AddModal

@@ -1,5 +1,14 @@
 // import "./App.css";
-import { Box, Button, Divider, Flex, Text, VStack } from "@chakra-ui/react";
+import {
+    Box,
+    Button,
+    Divider,
+    Flex,
+    Heading,
+    Select,
+    Text,
+    VStack,
+} from "@chakra-ui/react";
 import {
     DownloadIcon,
     AddIcon,
@@ -9,7 +18,17 @@ import {
 
 import { useState } from "react";
 
-export default function Sidebar({ data, onOpen }) {
+export default function Sidebar({
+    data,
+    onOpen,
+    view,
+    setView,
+    municipalities,
+    selectedMunicipality,
+    setSelectedMunicipality,
+    selectedTypeface,
+    setSelectedTypeface,
+}) {
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     // Toggle sidebar collapse state
@@ -77,13 +96,7 @@ export default function Sidebar({ data, onOpen }) {
                     </Box>
                 )}
 
-                {isCollapsed ? (
-                    <VStack spacing={8} mt={8} mb="auto">
-                        <Text fontSize="sm" fontWeight="bold">
-                            D
-                        </Text>
-                    </VStack>
-                ) : (
+                {!isCollapsed && (
                     <VStack spacing={6} align="stretch" flex={1} px={3}>
                         <Text fontSize="sm" color="whiteAlpha.700">
                             {Object.keys(data).length > 0
@@ -93,7 +106,86 @@ export default function Sidebar({ data, onOpen }) {
                                 : "No data loaded"}
                         </Text>
 
-                        {/* Add more sidebar content here if needed */}
+                        <Heading as="h2" size="lg" mb={6} textAlign="center">
+                            Sign Analysis
+                        </Heading>
+
+                        {/* View selection tabs */}
+                        <Box mb={6}>
+                            <Heading as="h3" size="md" mb={2}>
+                                Select View
+                            </Heading>
+                            <Button
+                                w="full"
+                                mb={2}
+                                colorScheme={
+                                    view === "municipality" ? "blue" : "gray"
+                                }
+                                onClick={() => setView("municipality")}
+                            >
+                                Municipality View
+                            </Button>
+                            <Button
+                                w="full"
+                                mb={2}
+                                colorScheme={
+                                    view === "typeface" ? "blue" : "gray"
+                                }
+                                onClick={() => setView("typeface")}
+                            >
+                                Typeface View
+                            </Button>
+                        </Box>
+
+                        {/* Municipality selection */}
+                        {view === "municipality" && (
+                            <VStack align="stretch" mb={6} spacing={4}>
+                                <Box>
+                                    <Heading as="h3" size="md" mb={2}>
+                                        Municipality
+                                    </Heading>
+                                    <Select
+                                        bg="gray.700"
+                                        value={selectedMunicipality}
+                                        onChange={(e) =>
+                                            setSelectedMunicipality(
+                                                e.target.value
+                                            )
+                                        }
+                                    >
+                                        {municipalities.map((muni) => (
+                                            <option key={muni} value={muni}>
+                                                {muni}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                </Box>
+                            </VStack>
+                        )}
+
+                        {/* Typeface selection */}
+                        {view === "typeface" && (
+                            <VStack align="stretch" mb={6} spacing={4}>
+                                <Box>
+                                    <Heading as="h3" size="md" mb={2}>
+                                        Typeface
+                                    </Heading>
+                                    <Select
+                                        bg="gray.700"
+                                        value={selectedTypeface}
+                                        onChange={(e) =>
+                                            setSelectedTypeface(e.target.value)
+                                        }
+                                    >
+                                        {[].map((style) => (
+                                            <option key={style} value={style}>
+                                                {style}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                </Box>
+                            </VStack>
+                        )}
                     </VStack>
                 )}
 

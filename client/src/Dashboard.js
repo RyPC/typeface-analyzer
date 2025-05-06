@@ -1,5 +1,15 @@
 // import "./App.css";
-import { Box, Flex, VStack, Button, Select, Text } from "@chakra-ui/react";
+import {
+    Box,
+    Flex,
+    VStack,
+    Button,
+    Select,
+    Text,
+    HStack,
+    Badge,
+    Heading,
+} from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import {
     Bar,
@@ -14,11 +24,28 @@ import {
     Pie,
     Cell,
     Legend,
+    Sector,
 } from "recharts";
 
 import Papa from "papaparse";
 
-export default function Dashboard({ data, setData }) {
+import { LETTERING_ONTOLOGIES } from "./constants";
+
+export default function Dashboard({ data, setData, view, setMunicipalities }) {
+    const [processedData, setProcessedData] = useState({});
+    const [activePieIndex, setActivePieIndex] = useState(0);
+
+    // Color schemes for the charts
+    const barColors = [
+        "#8884d8",
+        "#83a6ed",
+        "#8dd1e1",
+        "#82ca9d",
+        "#a4de6c",
+        "#d0ed57",
+    ];
+    const pieColors = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
+
     // Handles uploading file from user
     const handleFileUpload = (event) => {
         const file = event.target.files[0]; // Get the uploaded file
@@ -42,9 +69,21 @@ export default function Dashboard({ data, setData }) {
     const parseCSV = (csvContent) => {
         Papa.parse(csvContent, {
             complete: (result) => {
+                // Data to be tracked
+                const typefaceStyleCounts = {};
+                const letteringOntologyCounts = {};
+                const messageFunctionCounts = {};
+                const placementCounts = {};
+                const covidRelatedCounts = {
+                    "COVID-Related": 0,
+                    "Non-COVID": 0,
+                };
+
                 const rows = result.data;
                 const header = rows[0]; // Get the header row
                 const rawData = rows.slice(1); // Get the data rows
+
+                const municipalities = new Set(["All"]);
 
                 // Go through data and include non-empty entries
                 const data = [];
@@ -65,7 +104,8 @@ export default function Dashboard({ data, setData }) {
                         } else if (key === "Initials") {
                             photo["initials"] = value;
                         } else if (key === "Municipality") {
-                            photo["municipality"] = value;
+                            photo["municipality"] = value.trim();
+                            municipalities.add(value.trim());
                         } else if (key === "Photo name") {
                             photo["custom_id"] = value;
                         } else if (key === "Number of substrates") {
@@ -82,6 +122,8 @@ export default function Dashboard({ data, setData }) {
                             if (value) {
                                 currentSubstrate = {};
                                 currentSubstrate["placement"] = value;
+                                placementCounts[value] =
+                                    (placementCounts[value] || 0) + 1;
                             } else {
                                 currentSubstrate = null;
                             }
@@ -122,6 +164,14 @@ export default function Dashboard({ data, setData }) {
                                 currentTypeface["typefaceStyle"] = value
                                     ? value.split(",").map((s) => s.trim())
                                     : [];
+                                // Add to typeface style counts
+                                currentTypeface["typefaceStyle"].forEach(
+                                    (style) => {
+                                        typefaceStyleCounts[style] =
+                                            (typefaceStyleCounts[style] || 0) +
+                                            1;
+                                    }
+                                );
                             } else {
                                 currentTypeface = null;
                             }
@@ -134,6 +184,14 @@ export default function Dashboard({ data, setData }) {
                             currentTypeface["letteringOntology"] = value
                                 ? value.split(",").map((s) => s.trim())
                                 : [];
+                            // Add to lettering ontology counts
+                            currentTypeface["letteringOntology"].forEach(
+                                (ontology) => {
+                                    letteringOntologyCounts[ontology] =
+                                        (letteringOntologyCounts[ontology] ||
+                                            0) + 1;
+                                }
+                            );
                         } else if (
                             /^Message Function/.test(key) &&
                             currentTypeface
@@ -141,11 +199,25 @@ export default function Dashboard({ data, setData }) {
                             currentTypeface["messageFunction"] = value
                                 ? value.split(",").map((s) => s.trim())
                                 : [];
+                            // Add to message function counts
+                            currentTypeface["messageFunction"].forEach(
+                                (msgFunction) => {
+                                    messageFunctionCounts[msgFunction] =
+                                        (messageFunctionCounts[msgFunction] ||
+                                            0) + 1;
+                                }
+                            );
                         } else if (
                             /^Covid related/.test(key) &&
                             currentTypeface
                         ) {
                             currentTypeface["covidRelated"] = value === "TRUE";
+                            // Add to covid related counts
+                            if (value === "TRUE") {
+                                covidRelatedCounts["COVID-Related"]++;
+                            } else {
+                                covidRelatedCounts["Non-COVID"]++;
+                            }
                         } else if (
                             /^Text Notes(?!\?)\b.*/.test(key) &&
                             currentTypeface
@@ -190,15 +262,153 @@ export default function Dashboard({ data, setData }) {
                 });
 
                 console.log(data);
+                setData(data);
+                setMunicipalities([...municipalities]);
+
+                // Process data into counts
+                // Convert to arrays for charts
+                const typefaceData = Object.keys(typefaceStyleCounts).map(
+                    (key) => ({
+                        typeface: key,
+                        count: typefaceStyleCounts[key],
+                    })
+                );
+
+                const letteringData = Object.keys(letteringOntologyCounts)
+                    .filter((key) => LETTERING_ONTOLOGIES.includes(key))
+                    .map((key) => ({
+                        ontology: key,
+                        count: letteringOntologyCounts[key],
+                    }));
+                letteringData.push({
+                    ontology: "Other",
+                    count: Object.keys(letteringOntologyCounts)
+                        .filter((key) => !LETTERING_ONTOLOGIES.includes(key))
+                        .reduce((acc, key) => {
+                            return acc + letteringOntologyCounts[key] || 0;
+                        }, 0),
+                });
+
+                const messageFunctionData = Object.keys(
+                    messageFunctionCounts
+                ).map((key) => ({
+                    function: key,
+                    count: messageFunctionCounts[key],
+                }));
+
+                const placementData = Object.keys(placementCounts).map(
+                    (key) => ({
+                        placement: key,
+                        count: placementCounts[key],
+                    })
+                );
+
+                const covidData = Object.keys(covidRelatedCounts).map(
+                    (key) => ({
+                        category: key,
+                        count: covidRelatedCounts[key],
+                        color: key === "COVID-Related" ? "#FF8042" : "#0088FE",
+                    })
+                );
+                setProcessedData({
+                    typefaceData,
+                    letteringData,
+                    messageFunctionData,
+                    placementData,
+                    covidData,
+                });
+                console.log({
+                    typefaceData,
+                    letteringData,
+                    messageFunctionData,
+                    placementData,
+                    covidData,
+                });
             },
             header: false, // CSV header manually handled
         });
     };
 
-    useEffect(() => {
-        setChartFocus([Object.keys(data)[0], Object.keys(data)[0]]);
-    }, [data]);
-    const [chartFocus, setChartFocus] = useState([]);
+    // useEffect(() => {
+    //     setChartFocus([Object.keys(data)[0], Object.keys(data)[0]]);
+    // }, [data]);
+
+    // Custom tooltip component
+    const CustomTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+            return (
+                <Box bg="white" p={3} borderRadius="md" boxShadow="md">
+                    <Text fontWeight="bold">{label}</Text>
+                    <Text color={payload[0].color || "#8884d8"}>
+                        Count: {payload[0].value}
+                    </Text>
+                </Box>
+            );
+        }
+        return null;
+    };
+
+    // Active sector for pie chart
+    const onPieEnter = (_, index) => {
+        setActivePieIndex(index);
+    };
+
+    // Render active shape for pie chart
+    const renderActiveShape = (props) => {
+        const {
+            cx,
+            cy,
+            innerRadius,
+            outerRadius,
+            startAngle,
+            endAngle,
+            fill,
+            payload,
+            percent,
+            value,
+        } = props;
+
+        return (
+            <g>
+                <text x={cx} y={cy} dy={-20} textAnchor="middle" fill="#333">
+                    {payload.category}
+                </text>
+                <text
+                    x={cx}
+                    y={cy}
+                    dy={8}
+                    textAnchor="middle"
+                    fill="#333"
+                    fontSize={16}
+                    fontWeight="bold"
+                >
+                    {value}
+                </text>
+                <text x={cx} y={cy} dy={25} textAnchor="middle" fill="#999">
+                    {`(${(percent * 100).toFixed(2)}%)`}
+                </text>
+                <Sector
+                    cx={cx}
+                    cy={cy}
+                    innerRadius={innerRadius}
+                    outerRadius={outerRadius + 10}
+                    startAngle={startAngle}
+                    endAngle={endAngle}
+                    fill={fill}
+                />
+                <Sector
+                    cx={cx}
+                    cy={cy}
+                    startAngle={startAngle}
+                    endAngle={endAngle}
+                    innerRadius={outerRadius + 12}
+                    outerRadius={outerRadius + 16}
+                    fill={fill}
+                />
+            </g>
+        );
+    };
+
     return (
         <Box flex={1} w="full" height="full">
             <Flex
@@ -206,129 +416,322 @@ export default function Dashboard({ data, setData }) {
                 gap={4}
                 w="full"
                 justify="center"
-                flexDirection="row"
+                flexDirection="column"
                 padding={10}
             >
                 {Object.keys(data).length > 0 ? (
                     <>
-                        {/* Bar Graphs */}
-                        {[0, 0].map((_, row) => (
-                            <Box
-                                backgroundColor="#55627E"
-                                flex={1}
-                                color="white"
-                                rounded="30px"
-                                alignContent="center"
-                                textAlign="center"
-                                p={4}
-                            >
-                                <VStack>
-                                    <Text>
-                                        Counts of typefaces in {chartFocus[row]}
-                                    </Text>
-                                    <ResponsiveContainer
-                                        width={600}
-                                        height={300}
-                                    >
-                                        <BarChart data={data[chartFocus[row]]}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis
-                                                dataKey="typeface"
-                                                stroke="white"
-                                            />
-                                            <YAxis stroke="white" />
-                                            <Tooltip stroke="black" />
-                                            <Bar
-                                                dataKey="count"
-                                                fill="#8884d8"
-                                            />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                    <Select
-                                        onChange={(e) => {
-                                            const newChartFocus = [
-                                                ...chartFocus,
-                                            ];
-                                            newChartFocus[row] = e.target.value;
-                                            setChartFocus(newChartFocus);
+                        <Heading size="lg" mb={4} textAlign="center">
+                            Municipality Typography Analysis
+                        </Heading>
 
-                                            console.log(newChartFocus);
+                        {/* First row */}
+                        <Flex direction="row" gap={4} mb={4}>
+                            {/* Typeface Data */}
+                            <Box
+                                flex={1}
+                                bg="white"
+                                borderRadius="xl"
+                                p={6}
+                                boxShadow="md"
+                                overflow="hidden"
+                            >
+                                <Heading size="md" mb={4} color="#2D3748">
+                                    Typeface Distribution
+                                </Heading>
+                                <Badge mb={4} colorScheme="purple">
+                                    All Municipalities
+                                </Badge>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart
+                                        data={processedData.typefaceData}
+                                        margin={{
+                                            top: 20,
+                                            right: 30,
+                                            left: 20,
+                                            bottom: 40,
                                         }}
                                     >
-                                        {Object.keys(data).map((muni) => (
-                                            <option>{muni}</option>
-                                        ))}
-                                    </Select>
-                                </VStack>
+                                        <CartesianGrid
+                                            strokeDasharray="3 3"
+                                            stroke="#f0f0f0"
+                                        />
+                                        <XAxis
+                                            dataKey="typeface"
+                                            angle={-45}
+                                            textAnchor="end"
+                                            height={60}
+                                        />
+                                        <YAxis />
+                                        <Tooltip content={<CustomTooltip />} />
+                                        <Legend verticalAlign="top" />
+                                        <Bar
+                                            dataKey="count"
+                                            name="Number of Occurrences"
+                                            radius={[5, 5, 0, 0]}
+                                        >
+                                            {processedData.typefaceData &&
+                                                processedData.typefaceData.map(
+                                                    (entry, index) => (
+                                                        <Cell
+                                                            key={`cell-${index}`}
+                                                            fill={
+                                                                barColors[
+                                                                    index %
+                                                                        barColors.length
+                                                                ]
+                                                            }
+                                                        />
+                                                    )
+                                                )}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
                             </Box>
-                        ))}
-                        {/* Pie Chart */}
-                        <Box
-                            backgroundColor="#55627E"
-                            flex={1}
-                            color="white"
-                            rounded="30px"
-                            alignContent="center"
-                            textAlign="center"
-                            p={4}
-                        >
-                            <VStack>
-                                <Text>
-                                    Distribution of Typefaces by Municipality
-                                </Text>
-                                <ResponsiveContainer width={600} height={300}>
+
+                            {/* Lettering Ontology Data */}
+                            <Box
+                                flex={1}
+                                bg="white"
+                                borderRadius="xl"
+                                p={6}
+                                boxShadow="md"
+                                overflow="hidden"
+                            >
+                                <Heading size="md" mb={4} color="#2D3748">
+                                    Lettering Classifications
+                                </Heading>
+                                <Badge mb={4} colorScheme="blue">
+                                    All Municipalities
+                                </Badge>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart
+                                        data={processedData.letteringData}
+                                        margin={{
+                                            top: 20,
+                                            right: 30,
+                                            left: 20,
+                                            bottom: 40,
+                                        }}
+                                    >
+                                        <CartesianGrid
+                                            strokeDasharray="3 3"
+                                            stroke="#f0f0f0"
+                                        />
+                                        <XAxis
+                                            dataKey="ontology"
+                                            angle={-45}
+                                            textAnchor="end"
+                                            height={60}
+                                        />
+                                        <YAxis />
+                                        <Tooltip content={<CustomTooltip />} />
+                                        <Legend verticalAlign="top" />
+                                        <Bar
+                                            dataKey="count"
+                                            name="Number of Typefaces"
+                                            radius={[5, 5, 0, 0]}
+                                        >
+                                            {processedData.letteringData &&
+                                                processedData.letteringData.map(
+                                                    (entry, index) => (
+                                                        <Cell
+                                                            key={`cell-${index}`}
+                                                            fill={
+                                                                barColors[
+                                                                    index %
+                                                                        barColors.length
+                                                                ]
+                                                            }
+                                                        />
+                                                    )
+                                                )}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </Box>
+                        </Flex>
+
+                        {/* Second row */}
+                        <Flex direction="row" gap={4}>
+                            {/* Message Function Data */}
+                            <Box
+                                flex={1}
+                                bg="white"
+                                borderRadius="xl"
+                                p={6}
+                                boxShadow="md"
+                                overflow="hidden"
+                            >
+                                <Heading size="md" mb={4} color="#2D3748">
+                                    Message Functions
+                                </Heading>
+                                <Badge mb={4} colorScheme="green">
+                                    All Municipalities
+                                </Badge>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart
+                                        data={processedData.messageFunctionData}
+                                        margin={{
+                                            top: 20,
+                                            right: 30,
+                                            left: 20,
+                                            bottom: 40,
+                                        }}
+                                    >
+                                        <CartesianGrid
+                                            strokeDasharray="3 3"
+                                            stroke="#f0f0f0"
+                                        />
+                                        <XAxis
+                                            dataKey="function"
+                                            angle={-45}
+                                            textAnchor="end"
+                                            height={60}
+                                        />
+                                        <YAxis />
+                                        <Tooltip content={<CustomTooltip />} />
+                                        <Legend verticalAlign="top" />
+                                        <Bar
+                                            dataKey="count"
+                                            name="Number of Typefaces"
+                                            radius={[5, 5, 0, 0]}
+                                        >
+                                            {processedData.messageFunctionData &&
+                                                processedData.messageFunctionData.map(
+                                                    (entry, index) => (
+                                                        <Cell
+                                                            key={`cell-${index}`}
+                                                            fill={
+                                                                barColors[
+                                                                    index %
+                                                                        barColors.length
+                                                                ]
+                                                            }
+                                                        />
+                                                    )
+                                                )}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </Box>
+
+                            {/* Placement Data */}
+                            <Box
+                                flex={1}
+                                bg="white"
+                                borderRadius="xl"
+                                p={6}
+                                boxShadow="md"
+                                overflow="hidden"
+                            >
+                                <Heading size="md" mb={4} color="#2D3748">
+                                    Placement Distribution
+                                </Heading>
+                                <Badge mb={4} colorScheme="teal">
+                                    All Municipalities
+                                </Badge>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart
+                                        data={processedData.placementData}
+                                        margin={{
+                                            top: 20,
+                                            right: 30,
+                                            left: 20,
+                                            bottom: 40,
+                                        }}
+                                    >
+                                        <CartesianGrid
+                                            strokeDasharray="3 3"
+                                            stroke="#f0f0f0"
+                                        />
+                                        <XAxis
+                                            dataKey="placement"
+                                            angle={-45}
+                                            textAnchor="end"
+                                            height={60}
+                                        />
+                                        <YAxis />
+                                        <Tooltip content={<CustomTooltip />} />
+                                        <Legend verticalAlign="top" />
+                                        <Bar
+                                            dataKey="count"
+                                            name="Number of Typefaces"
+                                            radius={[5, 5, 0, 0]}
+                                        >
+                                            {processedData.placementData &&
+                                                processedData.placementData.map(
+                                                    (entry, index) => (
+                                                        <Cell
+                                                            key={`cell-${index}`}
+                                                            fill={
+                                                                barColors[
+                                                                    index %
+                                                                        barColors.length
+                                                                ]
+                                                            }
+                                                        />
+                                                    )
+                                                )}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </Box>
+
+                            {/* COVID Data */}
+                            <Box
+                                flex={1}
+                                bg="white"
+                                borderRadius="xl"
+                                p={6}
+                                boxShadow="md"
+                                overflow="hidden"
+                            >
+                                <Heading size="md" mb={4} color="#2D3748">
+                                    COVID-Related Signage
+                                </Heading>
+                                <Badge mb={4} colorScheme="orange">
+                                    All Municipalities
+                                </Badge>
+                                <ResponsiveContainer width="100%" height={300}>
                                     <PieChart>
                                         <Pie
-                                            data={Object.keys(data).map(
-                                                (municipality) => ({
-                                                    name: municipality,
-                                                    value: data[
-                                                        municipality
-                                                    ].reduce(
-                                                        (sum, item) =>
-                                                            sum + item.count,
-                                                        0
-                                                    ),
-                                                })
-                                            )}
+                                            activeIndex={activePieIndex}
+                                            activeShape={renderActiveShape}
+                                            data={processedData.covidData}
                                             cx="50%"
                                             cy="50%"
-                                            labelLine={true}
-                                            label={({ name, value }) =>
-                                                `${name}: ${value}`
-                                            }
+                                            innerRadius={60}
                                             outerRadius={80}
-                                            fill="#8884d8"
-                                            dataKey="value"
+                                            dataKey="count"
+                                            nameKey="category"
+                                            onMouseEnter={onPieEnter}
                                         >
-                                            {Object.keys(data).map(
-                                                (entry, index) => (
-                                                    <Cell
-                                                        key={`cell-${index}`}
-                                                        fill={`hsl(${
-                                                            (index * 360) /
-                                                            Object.keys(data)
-                                                                .length
-                                                        }, 70%, 60%)`}
-                                                    />
-                                                )
-                                            )}
+                                            {processedData.covidData &&
+                                                processedData.covidData.map(
+                                                    (entry, index) => (
+                                                        <Cell
+                                                            key={`cell-${index}`}
+                                                            fill={
+                                                                pieColors[
+                                                                    index %
+                                                                        pieColors.length
+                                                                ]
+                                                            }
+                                                        />
+                                                    )
+                                                )}
                                         </Pie>
-                                        <Tooltip
-                                            formatter={(value, name) => [
-                                                `${value} typefaces`,
-                                                name,
-                                            ]}
-                                        />
+                                        <Tooltip />
                                         <Legend />
                                     </PieChart>
                                 </ResponsiveContainer>
-                            </VStack>
-                        </Box>
+                            </Box>
+                        </Flex>
                     </>
                 ) : (
                     <Box p={5}>
-                        <label for="csv_upload">
+                        <label htmlFor="csv_upload">
                             <Text
                                 as="b"
                                 p="8px"
@@ -348,7 +751,6 @@ export default function Dashboard({ data, setData }) {
                             name="csv_upload"
                             accept=".csv"
                             onChange={handleFileUpload}
-                            // className="hidden"
                             hidden
                         />
                     </Box>
