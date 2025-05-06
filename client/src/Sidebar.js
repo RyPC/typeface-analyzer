@@ -24,10 +24,10 @@ export default function Sidebar({
     view,
     setView,
     municipalities,
-    selectedMunicipality,
-    setSelectedMunicipality,
-    selectedTypeface,
-    setSelectedTypeface,
+    municipality,
+    updateMunicipality,
+    typeface,
+    setTypeface,
 }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -100,9 +100,7 @@ export default function Sidebar({
                     <VStack spacing={6} align="stretch" flex={1} px={3}>
                         <Text fontSize="sm" color="whiteAlpha.700">
                             {Object.keys(data).length > 0
-                                ? `${
-                                      Object.keys(data).length
-                                  } municipalities loaded`
+                                ? `${Object.keys(data).length} photo loaded`
                                 : "No data loaded"}
                         </Text>
 
@@ -146,11 +144,9 @@ export default function Sidebar({
                                     </Heading>
                                     <Select
                                         bg="gray.700"
-                                        value={selectedMunicipality}
+                                        value={municipality}
                                         onChange={(e) =>
-                                            setSelectedMunicipality(
-                                                e.target.value
-                                            )
+                                            updateMunicipality(e.target.value)
                                         }
                                     >
                                         {municipalities.map((muni) => (
@@ -172,9 +168,9 @@ export default function Sidebar({
                                     </Heading>
                                     <Select
                                         bg="gray.700"
-                                        value={selectedTypeface}
+                                        value={typeface}
                                         onChange={(e) =>
-                                            setSelectedTypeface(e.target.value)
+                                            setTypeface(e.target.value)
                                         }
                                     >
                                         {[].map((style) => (

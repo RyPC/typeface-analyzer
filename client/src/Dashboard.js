@@ -31,8 +31,15 @@ import Papa from "papaparse";
 
 import { LETTERING_ONTOLOGIES } from "./constants";
 
-export default function Dashboard({ data, setData, view, setMunicipalities }) {
-    const [processedData, setProcessedData] = useState({});
+export default function Dashboard({
+    data,
+    setData,
+    processedData,
+    setProcessedData,
+    view,
+    selectedMunicipality,
+    setMunicipalities,
+}) {
     const [activePieIndex, setActivePieIndex] = useState(0);
 
     // Color schemes for the charts
@@ -83,7 +90,7 @@ export default function Dashboard({ data, setData, view, setMunicipalities }) {
                 const header = rows[0]; // Get the header row
                 const rawData = rows.slice(1); // Get the data rows
 
-                const municipalities = new Set(["All"]);
+                const municipalities = new Set(["All Municipalities"]);
 
                 // Go through data and include non-empty entries
                 const data = [];
@@ -422,7 +429,7 @@ export default function Dashboard({ data, setData, view, setMunicipalities }) {
                 {Object.keys(data).length > 0 ? (
                     <>
                         <Heading size="lg" mb={4} textAlign="center">
-                            Municipality Typography Analysis
+                            Typography Analysis of {selectedMunicipality}
                         </Heading>
 
                         {/* First row */}
@@ -440,7 +447,7 @@ export default function Dashboard({ data, setData, view, setMunicipalities }) {
                                     Typeface Distribution
                                 </Heading>
                                 <Badge mb={4} colorScheme="purple">
-                                    All Municipalities
+                                    {selectedMunicipality}
                                 </Badge>
                                 <ResponsiveContainer width="100%" height={300}>
                                     <BarChart

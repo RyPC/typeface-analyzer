@@ -19,14 +19,112 @@ import { useState } from "react";
 import AddModal from "./AddModal.js";
 import { SettingsIcon, InfoIcon } from "@chakra-ui/icons";
 
+import { LETTERING_ONTOLOGIES } from "./constants.js";
+
 export default function App() {
-    const [countData, setCountData] = useState({});
+    const [data, setData] = useState({});
+    const [processedData, setProcessedData] = useState({});
     const { isOpen, onOpen, onClose } = useDisclosure();
     const [municipalities, setMunicipalities] = useState([]);
 
     const [view, setView] = useState("municipality"); // "municipality" or "typeface"
-    const [selectedMunicipality, setSelectedMunicipality] = useState("All");
+    const [selectedMunicipality, setSelectedMunicipality] =
+        useState("All Municipalities");
     const [selectedTypeface, setSelectedTypeface] = useState(null);
+
+    // Update processedData to display data for new municipality
+    const updateSelectedMunicipality = (muni) => {
+        // Data to be tracked
+        const typefaceStyleCounts = {};
+        const letteringOntologyCounts = {};
+        const messageFunctionCounts = {};
+        const placementCounts = {};
+        const covidRelatedCounts = {
+            "COVID-Related": 0,
+            "Non-COVID": 0,
+        };
+
+        // Go through photos and count
+        data.filter(
+            (photo) =>
+                muni === "All Municipalities" || photo.municipality === muni
+        ).forEach((photo) => {
+            photo.substrates.forEach((substrate) => {
+                substrate.typefaces.forEach((typeface) => {
+                    typeface.typefaceStyle.forEach((style) => {
+                        typefaceStyleCounts[style] =
+                            (typefaceStyleCounts[style] || 0) + 1;
+                    });
+
+                    typeface.letteringOntology.forEach((ontology) => {
+                        letteringOntologyCounts[ontology] =
+                            (letteringOntologyCounts[ontology] || 0) + 1;
+                    });
+
+                    typeface.messageFunction.forEach((msgFunction) => {
+                        messageFunctionCounts[msgFunction] =
+                            (messageFunctionCounts[msgFunction] || 0) + 1;
+                    });
+
+                    placementCounts[substrate.placement] =
+                        (placementCounts[substrate.placement] || 0) + 1;
+
+                    covidRelatedCounts[
+                        typeface.covidRelated ? "COVID-Related" : "Non-COVID"
+                    ]++;
+                });
+            });
+        });
+
+        // Process data into counts
+        // Convert to arrays for charts
+        const typefaceData = Object.keys(typefaceStyleCounts).map((key) => ({
+            typeface: key,
+            count: typefaceStyleCounts[key],
+        }));
+
+        const letteringData = Object.keys(letteringOntologyCounts)
+            .filter((key) => LETTERING_ONTOLOGIES.includes(key))
+            .map((key) => ({
+                ontology: key,
+                count: letteringOntologyCounts[key],
+            }));
+        letteringData.push({
+            ontology: "Other",
+            count: Object.keys(letteringOntologyCounts)
+                .filter((key) => !LETTERING_ONTOLOGIES.includes(key))
+                .reduce((acc, key) => {
+                    return acc + letteringOntologyCounts[key] || 0;
+                }, 0),
+        });
+
+        const messageFunctionData = Object.keys(messageFunctionCounts).map(
+            (key) => ({
+                function: key,
+                count: messageFunctionCounts[key],
+            })
+        );
+
+        const placementData = Object.keys(placementCounts).map((key) => ({
+            placement: key,
+            count: placementCounts[key],
+        }));
+
+        const covidData = Object.keys(covidRelatedCounts).map((key) => ({
+            category: key,
+            count: covidRelatedCounts[key],
+            color: key === "COVID-Related" ? "#FF8042" : "#0088FE",
+        }));
+        setProcessedData({
+            typefaceData,
+            letteringData,
+            messageFunctionData,
+            placementData,
+            covidData,
+        });
+
+        setSelectedMunicipality(muni);
+    };
 
     return (
         <Box
@@ -101,15 +199,15 @@ export default function App() {
                     overflow="hidden"
                 >
                     <Sidebar
-                        data={countData}
+                        data={data}
                         onOpen={onOpen}
                         view={view}
                         municipalities={municipalities}
                         setView={setView}
-                        selectedMunicipality={selectedMunicipality}
-                        setSelectedMunicipality={setSelectedMunicipality}
-                        selectedTypeface={selectedTypeface}
-                        setSelectedTypeface={setSelectedTypeface}
+                        municipality={selectedMunicipality}
+                        updateMunicipality={updateSelectedMunicipality}
+                        typeface={selectedTypeface}
+                        setTypeface={setSelectedTypeface}
                     />
                     <Box
                         flex={1}
@@ -121,16 +219,19 @@ export default function App() {
                         boxShadow="inset 0 4px 12px rgba(0, 0, 0, 0.05)"
                     >
                         <Dashboard
-                            data={countData}
-                            setData={setCountData}
+                            data={data}
+                            setData={setData}
+                            processedData={processedData}
+                            setProcessedData={setProcessedData}
                             view={view}
+                            selectedMunicipality={selectedMunicipality}
                             setMunicipalities={setMunicipalities}
                         />
                     </Box>
 
                     <AddModal
-                        data={countData}
-                        setData={setCountData}
+                        data={data}
+                        setData={setData}
                         isOpen={isOpen}
                         onClose={onClose}
                     />
@@ -142,10 +243,9 @@ export default function App() {
                         <Text fontSize="xs">
                             Typeface Analysis Dashboard © 2025
                         </Text>
-                        {/* <Text fontSize="xs">
-                            {Object.keys(countData).length} municipalities
-                            loaded
-                        </Text> */}
+                        <Text fontSize="xs">
+                            {Object.keys(data).length} photos loaded
+                        </Text>
                     </Flex>
                 </Box>
             </VStack>
