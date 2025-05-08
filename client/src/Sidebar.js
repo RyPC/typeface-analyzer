@@ -39,30 +39,21 @@ export default function Sidebar({
         setIsCollapsed(!isCollapsed);
     };
 
-    const handleDownloadCSV = () => {
+    const handleDownloadJSON = () => {
         // Simple implementation - you might want to customize based on your data structure
         if (Object.keys(data).length <= 0) return;
 
-        // Convert data to CSV format
-        const headers = ["Municipality", "Typeface", "Count"];
-        const csvRows = [headers.join(",")];
-
-        Object.keys(data).forEach((municipality) => {
-            data[municipality].forEach((item) => {
-                csvRows.push(`${municipality},${item.typeface},${item.count}`);
-            });
-        });
-
-        const csvContent = csvRows.join("\n");
+        // Convert data to JSON format
+        const jsonContent = JSON.stringify(data, null, 2);
 
         // Create a downloadable link
-        const blob = new Blob([csvContent], {
-            type: "text/csv;charset=utf-8;",
+        const blob = new Blob([jsonContent], {
+            type: "application/json;charset=utf-8;",
         });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", "typeface_data.csv");
+        link.setAttribute("download", "typeface_data.json");
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -269,13 +260,13 @@ export default function Sidebar({
                     {isCollapsed ? (
                         <>
                             <Button
-                                onClick={handleDownloadCSV}
+                                onClick={handleDownloadJSON}
                                 disabled={Object.keys(data).length <= 0}
                                 p={0}
                                 minW="40px"
                                 h="40px"
                                 borderRadius="full"
-                                aria-label="Download CSV"
+                                aria-label="Download JSON"
                             >
                                 <DownloadIcon boxSize={5} />
                             </Button>
@@ -306,7 +297,7 @@ export default function Sidebar({
                     ) : (
                         <>
                             <Button
-                                onClick={handleDownloadCSV}
+                                onClick={handleDownloadJSON}
                                 disabled={Object.keys(data).length <= 0}
                                 colorScheme="blue"
                                 leftIcon={<DownloadIcon />}
@@ -314,7 +305,7 @@ export default function Sidebar({
                                 variant="solid"
                                 _hover={{ bg: "blue.500" }}
                             >
-                                Download CSV
+                                Download JSON
                             </Button>
 
                             <Button
