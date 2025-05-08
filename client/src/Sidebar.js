@@ -26,8 +26,11 @@ export default function Sidebar({
     municipalities,
     municipality,
     updateMunicipality,
-    typeface,
-    setTypeface,
+    feature,
+    setFeature,
+    subFeature,
+    setSubFeature,
+    processedData,
 }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -126,12 +129,10 @@ export default function Sidebar({
                             <Button
                                 w="full"
                                 mb={2}
-                                colorScheme={
-                                    view === "typeface" ? "blue" : "gray"
-                                }
-                                onClick={() => setView("typeface")}
+                                colorScheme={view === "map" ? "blue" : "gray"}
+                                onClick={() => setView("map")}
                             >
-                                Typeface View
+                                Map View
                             </Button>
                         </Box>
 
@@ -160,24 +161,103 @@ export default function Sidebar({
                         )}
 
                         {/* Typeface selection */}
-                        {view === "typeface" && (
+                        {view === "map" && (
                             <VStack align="stretch" mb={6} spacing={4}>
                                 <Box>
                                     <Heading as="h3" size="md" mb={2}>
-                                        Typeface
+                                        Feature
                                     </Heading>
                                     <Select
                                         bg="gray.700"
-                                        value={typeface}
+                                        value={feature}
+                                        onChange={(e) => {
+                                            setFeature(e.target.value);
+                                            console.log(e.target.value);
+                                        }}
+                                    >
+                                        <option value="typeface">
+                                            Typeface Style
+                                        </option>
+                                        <option value="lettering">
+                                            Lettering Ontology
+                                        </option>
+                                        <option value="message">
+                                            Message Function
+                                        </option>
+                                        <option value="placement">
+                                            Placement
+                                        </option>
+                                        <option value="covid">
+                                            COVID Related
+                                        </option>
+                                    </Select>
+                                </Box>
+                                <Box>
+                                    <Heading as="h3" size="md" mb={2}>
+                                        Sub-feature
+                                    </Heading>
+                                    <Select
+                                        bg="gray.700"
+                                        value={subFeature}
                                         onChange={(e) =>
-                                            setTypeface(e.target.value)
+                                            setSubFeature(e.target.value)
                                         }
                                     >
-                                        {[].map((style) => (
-                                            <option key={style} value={style}>
-                                                {style}
-                                            </option>
-                                        ))}
+                                        {feature === "typeface" &&
+                                            processedData?.typefaceData?.map(
+                                                (item) => (
+                                                    <option
+                                                        key={item.typeface}
+                                                        value={item.typeface}
+                                                    >
+                                                        {item.typeface}
+                                                    </option>
+                                                )
+                                            )}
+                                        {feature === "lettering" &&
+                                            processedData?.letteringData?.map(
+                                                (item) => (
+                                                    <option
+                                                        key={item.ontology}
+                                                        value={item.ontology}
+                                                    >
+                                                        {item.ontology}
+                                                    </option>
+                                                )
+                                            )}
+                                        {feature === "message" &&
+                                            processedData?.messageFunctionData?.map(
+                                                (item) => (
+                                                    <option
+                                                        key={item.function}
+                                                        value={item.function}
+                                                    >
+                                                        {item.function}
+                                                    </option>
+                                                )
+                                            )}
+                                        {feature === "placement" &&
+                                            processedData?.placementData?.map(
+                                                (item) => (
+                                                    <option
+                                                        key={item.placement}
+                                                        value={item.placement}
+                                                    >
+                                                        {item.placement}
+                                                    </option>
+                                                )
+                                            )}
+                                        {feature === "covid" &&
+                                            processedData?.covidData?.map(
+                                                (item) => (
+                                                    <option
+                                                        key={item.category}
+                                                        value={item.category}
+                                                    >
+                                                        {item.category}
+                                                    </option>
+                                                )
+                                            )}
                                     </Select>
                                 </Box>
                             </VStack>

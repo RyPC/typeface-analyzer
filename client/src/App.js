@@ -27,10 +27,11 @@ export default function App() {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const [municipalities, setMunicipalities] = useState([]);
 
-    const [view, setView] = useState("municipality"); // "municipality" or "typeface"
+    const [view, setView] = useState("municipality"); // "municipality" or "map"
     const [selectedMunicipality, setSelectedMunicipality] =
         useState("All Municipalities");
-    const [selectedTypeface, setSelectedTypeface] = useState(null);
+    const [selectedFeature, setSelectedFeature] = useState("typeface");
+    const [selectedSubFeature, setSelectedSubFeature] = useState(null);
 
     // Update processedData to display data for new municipality
     const updateSelectedMunicipality = (muni) => {
@@ -206,8 +207,11 @@ export default function App() {
                         setView={setView}
                         municipality={selectedMunicipality}
                         updateMunicipality={updateSelectedMunicipality}
-                        typeface={selectedTypeface}
-                        setTypeface={setSelectedTypeface}
+                        feature={selectedFeature}
+                        setFeature={setSelectedFeature}
+                        subFeature={selectedSubFeature}
+                        setSubFeature={setSelectedSubFeature}
+                        processedData={processedData}
                     />
                     <Box
                         flex={1}
@@ -226,6 +230,8 @@ export default function App() {
                             view={view}
                             selectedMunicipality={selectedMunicipality}
                             setMunicipalities={setMunicipalities}
+                            feature={selectedFeature}
+                            subFeature={selectedSubFeature}
                         />
                     </Box>
 
