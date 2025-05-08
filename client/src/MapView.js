@@ -245,6 +245,7 @@ export default function MapView({
                         properties: {
                             ...feature.properties,
                             proportion: proportion,
+                            total: cityStats.total,
                         },
                     };
                 }),
@@ -256,14 +257,14 @@ export default function MapView({
             // Update the fill color based on proportion
             map.current.setPaintProperty("county-fill", "fill-color", [
                 "case",
-                ["==", ["get", "proportion"], 0],
-                "#cccccc", // Gray for cities with no data
+                ["==", ["get", "total"], 0],
+                "#cccccc", // Gray for cities with no data collection
                 [
                     "interpolate",
                     ["linear"],
                     ["get", "proportion"],
                     0,
-                    "#f7f7f7",
+                    "#ffffff", // White for cities with data but 0 proportion
                     0.25,
                     "#ffeda0",
                     0.5,
