@@ -30,6 +30,7 @@ import {
 import Papa from "papaparse";
 
 import { LETTERING_ONTOLOGIES } from "./constants";
+import MapView from "./MapView";
 
 export default function Dashboard({
     data,
@@ -39,6 +40,8 @@ export default function Dashboard({
     view,
     selectedMunicipality,
     setMunicipalities,
+    feature,
+    subFeature,
 }) {
     const [activePieIndex, setActivePieIndex] = useState(0);
 
@@ -428,313 +431,407 @@ export default function Dashboard({
             >
                 {Object.keys(data).length > 0 ? (
                     <>
-                        <Heading size="lg" mb={4} textAlign="center">
-                            Typography Analysis of {selectedMunicipality}
-                        </Heading>
-
-                        {/* First row */}
-                        <Flex direction="row" gap={4} mb={4}>
-                            {/* Typeface Data */}
-                            <Box
-                                flex={1}
-                                bg="white"
-                                borderRadius="xl"
-                                p={6}
-                                boxShadow="md"
-                                overflow="hidden"
-                            >
-                                <Heading size="md" mb={4} color="#2D3748">
-                                    Typeface Distribution
-                                </Heading>
-                                <Badge mb={4} colorScheme="purple">
+                        {view === "municipality" ? (
+                            <>
+                                <Heading size="lg" mb={4} textAlign="center">
+                                    Typography Analysis of{" "}
                                     {selectedMunicipality}
-                                </Badge>
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <BarChart
-                                        data={processedData.typefaceData}
-                                        margin={{
-                                            top: 20,
-                                            right: 30,
-                                            left: 20,
-                                            bottom: 40,
-                                        }}
-                                    >
-                                        <CartesianGrid
-                                            strokeDasharray="3 3"
-                                            stroke="#f0f0f0"
-                                        />
-                                        <XAxis
-                                            dataKey="typeface"
-                                            angle={-45}
-                                            textAnchor="end"
-                                            height={60}
-                                        />
-                                        <YAxis />
-                                        <Tooltip content={<CustomTooltip />} />
-                                        <Legend verticalAlign="top" />
-                                        <Bar
-                                            dataKey="count"
-                                            name="Number of Occurrences"
-                                            radius={[5, 5, 0, 0]}
-                                        >
-                                            {processedData.typefaceData &&
-                                                processedData.typefaceData.map(
-                                                    (entry, index) => (
-                                                        <Cell
-                                                            key={`cell-${index}`}
-                                                            fill={
-                                                                barColors[
-                                                                    index %
-                                                                        barColors.length
-                                                                ]
-                                                            }
-                                                        />
-                                                    )
-                                                )}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </Box>
-
-                            {/* Lettering Ontology Data */}
-                            <Box
-                                flex={1}
-                                bg="white"
-                                borderRadius="xl"
-                                p={6}
-                                boxShadow="md"
-                                overflow="hidden"
-                            >
-                                <Heading size="md" mb={4} color="#2D3748">
-                                    Lettering Classifications
                                 </Heading>
-                                <Badge mb={4} colorScheme="blue">
-                                    All Municipalities
-                                </Badge>
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <BarChart
-                                        data={processedData.letteringData}
-                                        margin={{
-                                            top: 20,
-                                            right: 30,
-                                            left: 20,
-                                            bottom: 40,
-                                        }}
+                                {/* First row */}
+                                <Flex direction="row" gap={4} mb={4}>
+                                    {/* Typeface Data */}
+                                    <Box
+                                        flex={1}
+                                        bg="white"
+                                        borderRadius="xl"
+                                        p={6}
+                                        boxShadow="md"
+                                        overflow="hidden"
                                     >
-                                        <CartesianGrid
-                                            strokeDasharray="3 3"
-                                            stroke="#f0f0f0"
-                                        />
-                                        <XAxis
-                                            dataKey="ontology"
-                                            angle={-45}
-                                            textAnchor="end"
-                                            height={60}
-                                        />
-                                        <YAxis />
-                                        <Tooltip content={<CustomTooltip />} />
-                                        <Legend verticalAlign="top" />
-                                        <Bar
-                                            dataKey="count"
-                                            name="Number of Typefaces"
-                                            radius={[5, 5, 0, 0]}
+                                        <Heading
+                                            size="md"
+                                            mb={4}
+                                            color="#2D3748"
                                         >
-                                            {processedData.letteringData &&
-                                                processedData.letteringData.map(
-                                                    (entry, index) => (
-                                                        <Cell
-                                                            key={`cell-${index}`}
-                                                            fill={
-                                                                barColors[
-                                                                    index %
-                                                                        barColors.length
-                                                                ]
-                                                            }
-                                                        />
-                                                    )
-                                                )}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </Box>
-                        </Flex>
+                                            Typeface Distribution
+                                        </Heading>
+                                        <Badge mb={4} colorScheme="purple">
+                                            Total:{" "}
+                                            {processedData.typefaceData.reduce(
+                                                (total, typeface) =>
+                                                    total + typeface.count,
+                                                0
+                                            )}
+                                        </Badge>
+                                        <ResponsiveContainer
+                                            width="100%"
+                                            height={300}
+                                        >
+                                            <BarChart
+                                                data={
+                                                    processedData.typefaceData
+                                                }
+                                                margin={{
+                                                    top: 20,
+                                                    right: 30,
+                                                    left: 20,
+                                                    bottom: 40,
+                                                }}
+                                            >
+                                                <CartesianGrid
+                                                    strokeDasharray="3 3"
+                                                    stroke="#f0f0f0"
+                                                />
+                                                <XAxis
+                                                    dataKey="typeface"
+                                                    angle={-45}
+                                                    textAnchor="end"
+                                                    height={60}
+                                                />
+                                                <YAxis />
+                                                <Tooltip
+                                                    content={<CustomTooltip />}
+                                                />
+                                                <Legend verticalAlign="top" />
+                                                <Bar
+                                                    dataKey="count"
+                                                    name="Number of Occurrences"
+                                                    radius={[5, 5, 0, 0]}
+                                                >
+                                                    {processedData.typefaceData &&
+                                                        processedData.typefaceData.map(
+                                                            (entry, index) => (
+                                                                <Cell
+                                                                    key={`cell-${index}`}
+                                                                    fill={
+                                                                        barColors[
+                                                                            index %
+                                                                                barColors.length
+                                                                        ]
+                                                                    }
+                                                                />
+                                                            )
+                                                        )}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </Box>
 
-                        {/* Second row */}
-                        <Flex direction="row" gap={4}>
-                            {/* Message Function Data */}
-                            <Box
-                                flex={1}
-                                bg="white"
-                                borderRadius="xl"
-                                p={6}
-                                boxShadow="md"
-                                overflow="hidden"
-                            >
-                                <Heading size="md" mb={4} color="#2D3748">
-                                    Message Functions
-                                </Heading>
-                                <Badge mb={4} colorScheme="green">
-                                    All Municipalities
-                                </Badge>
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <BarChart
-                                        data={processedData.messageFunctionData}
-                                        margin={{
-                                            top: 20,
-                                            right: 30,
-                                            left: 20,
-                                            bottom: 40,
-                                        }}
+                                    {/* Lettering Ontology Data */}
+                                    <Box
+                                        flex={1}
+                                        bg="white"
+                                        borderRadius="xl"
+                                        p={6}
+                                        boxShadow="md"
+                                        overflow="hidden"
                                     >
-                                        <CartesianGrid
-                                            strokeDasharray="3 3"
-                                            stroke="#f0f0f0"
-                                        />
-                                        <XAxis
-                                            dataKey="function"
-                                            angle={-45}
-                                            textAnchor="end"
-                                            height={60}
-                                        />
-                                        <YAxis />
-                                        <Tooltip content={<CustomTooltip />} />
-                                        <Legend verticalAlign="top" />
-                                        <Bar
-                                            dataKey="count"
-                                            name="Number of Typefaces"
-                                            radius={[5, 5, 0, 0]}
+                                        <Heading
+                                            size="md"
+                                            mb={4}
+                                            color="#2D3748"
                                         >
-                                            {processedData.messageFunctionData &&
-                                                processedData.messageFunctionData.map(
-                                                    (entry, index) => (
-                                                        <Cell
-                                                            key={`cell-${index}`}
-                                                            fill={
-                                                                barColors[
-                                                                    index %
-                                                                        barColors.length
-                                                                ]
-                                                            }
-                                                        />
-                                                    )
-                                                )}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </Box>
+                                            Lettering Classifications
+                                        </Heading>
+                                        <Badge mb={4} colorScheme="blue">
+                                            Total:{" "}
+                                            {processedData.letteringData.reduce(
+                                                (total, ontology) =>
+                                                    total + ontology.count,
+                                                0
+                                            )}
+                                        </Badge>
+                                        <ResponsiveContainer
+                                            width="100%"
+                                            height={300}
+                                        >
+                                            <BarChart
+                                                data={
+                                                    processedData.letteringData
+                                                }
+                                                margin={{
+                                                    top: 20,
+                                                    right: 30,
+                                                    left: 20,
+                                                    bottom: 40,
+                                                }}
+                                            >
+                                                <CartesianGrid
+                                                    strokeDasharray="3 3"
+                                                    stroke="#f0f0f0"
+                                                />
+                                                <XAxis
+                                                    dataKey="ontology"
+                                                    angle={-45}
+                                                    textAnchor="end"
+                                                    height={60}
+                                                />
+                                                <YAxis />
+                                                <Tooltip
+                                                    content={<CustomTooltip />}
+                                                />
+                                                <Legend verticalAlign="top" />
+                                                <Bar
+                                                    dataKey="count"
+                                                    name="Number of Typefaces"
+                                                    radius={[5, 5, 0, 0]}
+                                                >
+                                                    {processedData.letteringData &&
+                                                        processedData.letteringData.map(
+                                                            (entry, index) => (
+                                                                <Cell
+                                                                    key={`cell-${index}`}
+                                                                    fill={
+                                                                        barColors[
+                                                                            index %
+                                                                                barColors.length
+                                                                        ]
+                                                                    }
+                                                                />
+                                                            )
+                                                        )}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </Box>
+                                </Flex>
 
-                            {/* Placement Data */}
-                            <Box
-                                flex={1}
-                                bg="white"
-                                borderRadius="xl"
-                                p={6}
-                                boxShadow="md"
-                                overflow="hidden"
-                            >
-                                <Heading size="md" mb={4} color="#2D3748">
-                                    Placement Distribution
-                                </Heading>
-                                <Badge mb={4} colorScheme="teal">
-                                    All Municipalities
-                                </Badge>
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <BarChart
-                                        data={processedData.placementData}
-                                        margin={{
-                                            top: 20,
-                                            right: 30,
-                                            left: 20,
-                                            bottom: 40,
-                                        }}
+                                {/* Second row */}
+                                <Flex direction="row" gap={4}>
+                                    {/* Message Function Data */}
+                                    <Box
+                                        flex={1}
+                                        bg="white"
+                                        borderRadius="xl"
+                                        p={6}
+                                        boxShadow="md"
+                                        overflow="hidden"
                                     >
-                                        <CartesianGrid
-                                            strokeDasharray="3 3"
-                                            stroke="#f0f0f0"
-                                        />
-                                        <XAxis
-                                            dataKey="placement"
-                                            angle={-45}
-                                            textAnchor="end"
-                                            height={60}
-                                        />
-                                        <YAxis />
-                                        <Tooltip content={<CustomTooltip />} />
-                                        <Legend verticalAlign="top" />
-                                        <Bar
-                                            dataKey="count"
-                                            name="Number of Typefaces"
-                                            radius={[5, 5, 0, 0]}
+                                        <Heading
+                                            size="md"
+                                            mb={4}
+                                            color="#2D3748"
                                         >
-                                            {processedData.placementData &&
-                                                processedData.placementData.map(
-                                                    (entry, index) => (
-                                                        <Cell
-                                                            key={`cell-${index}`}
-                                                            fill={
-                                                                barColors[
-                                                                    index %
-                                                                        barColors.length
-                                                                ]
-                                                            }
-                                                        />
-                                                    )
-                                                )}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </Box>
+                                            Message Functions
+                                        </Heading>
+                                        <Badge mb={4} colorScheme="green">
+                                            Total:{" "}
+                                            {processedData.messageFunctionData.reduce(
+                                                (total, typefaces) =>
+                                                    total + typefaces.count,
+                                                0
+                                            )}
+                                        </Badge>
+                                        <ResponsiveContainer
+                                            width="100%"
+                                            height={300}
+                                        >
+                                            <BarChart
+                                                data={
+                                                    processedData.messageFunctionData
+                                                }
+                                                margin={{
+                                                    top: 20,
+                                                    right: 30,
+                                                    left: 20,
+                                                    bottom: 40,
+                                                }}
+                                            >
+                                                <CartesianGrid
+                                                    strokeDasharray="3 3"
+                                                    stroke="#f0f0f0"
+                                                />
+                                                <XAxis
+                                                    dataKey="function"
+                                                    angle={-45}
+                                                    textAnchor="end"
+                                                    height={60}
+                                                />
+                                                <YAxis />
+                                                <Tooltip
+                                                    content={<CustomTooltip />}
+                                                />
+                                                <Legend verticalAlign="top" />
+                                                <Bar
+                                                    dataKey="count"
+                                                    name="Number of Typefaces"
+                                                    radius={[5, 5, 0, 0]}
+                                                >
+                                                    {processedData.messageFunctionData &&
+                                                        processedData.messageFunctionData.map(
+                                                            (entry, index) => (
+                                                                <Cell
+                                                                    key={`cell-${index}`}
+                                                                    fill={
+                                                                        barColors[
+                                                                            index %
+                                                                                barColors.length
+                                                                        ]
+                                                                    }
+                                                                />
+                                                            )
+                                                        )}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </Box>
 
-                            {/* COVID Data */}
-                            <Box
-                                flex={1}
-                                bg="white"
-                                borderRadius="xl"
-                                p={6}
-                                boxShadow="md"
-                                overflow="hidden"
-                            >
-                                <Heading size="md" mb={4} color="#2D3748">
-                                    COVID-Related Signage
-                                </Heading>
-                                <Badge mb={4} colorScheme="orange">
-                                    All Municipalities
-                                </Badge>
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <PieChart>
-                                        <Pie
-                                            activeIndex={activePieIndex}
-                                            activeShape={renderActiveShape}
-                                            data={processedData.covidData}
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius={60}
-                                            outerRadius={80}
-                                            dataKey="count"
-                                            nameKey="category"
-                                            onMouseEnter={onPieEnter}
+                                    {/* Placement Data */}
+                                    <Box
+                                        flex={1}
+                                        bg="white"
+                                        borderRadius="xl"
+                                        p={6}
+                                        boxShadow="md"
+                                        overflow="hidden"
+                                    >
+                                        <Heading
+                                            size="md"
+                                            mb={4}
+                                            color="#2D3748"
                                         >
-                                            {processedData.covidData &&
-                                                processedData.covidData.map(
-                                                    (entry, index) => (
-                                                        <Cell
-                                                            key={`cell-${index}`}
-                                                            fill={
-                                                                pieColors[
-                                                                    index %
-                                                                        pieColors.length
-                                                                ]
-                                                            }
-                                                        />
-                                                    )
-                                                )}
-                                        </Pie>
-                                        <Tooltip />
-                                        <Legend />
-                                    </PieChart>
-                                </ResponsiveContainer>
+                                            Placement Distribution
+                                        </Heading>
+                                        <Badge mb={4} colorScheme="teal">
+                                            Total:{" "}
+                                            {processedData.placementData.reduce(
+                                                (total, substrate) =>
+                                                    total + substrate.count,
+                                                0
+                                            )}
+                                        </Badge>
+                                        <ResponsiveContainer
+                                            width="100%"
+                                            height={300}
+                                        >
+                                            <BarChart
+                                                data={
+                                                    processedData.placementData
+                                                }
+                                                margin={{
+                                                    top: 20,
+                                                    right: 30,
+                                                    left: 20,
+                                                    bottom: 40,
+                                                }}
+                                            >
+                                                <CartesianGrid
+                                                    strokeDasharray="3 3"
+                                                    stroke="#f0f0f0"
+                                                />
+                                                <XAxis
+                                                    dataKey="placement"
+                                                    angle={-45}
+                                                    textAnchor="end"
+                                                    height={60}
+                                                />
+                                                <YAxis />
+                                                <Tooltip
+                                                    content={<CustomTooltip />}
+                                                />
+                                                <Legend verticalAlign="top" />
+                                                <Bar
+                                                    dataKey="count"
+                                                    name="Number of Typefaces"
+                                                    radius={[5, 5, 0, 0]}
+                                                >
+                                                    {processedData.placementData &&
+                                                        processedData.placementData.map(
+                                                            (entry, index) => (
+                                                                <Cell
+                                                                    key={`cell-${index}`}
+                                                                    fill={
+                                                                        barColors[
+                                                                            index %
+                                                                                barColors.length
+                                                                        ]
+                                                                    }
+                                                                />
+                                                            )
+                                                        )}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </Box>
+
+                                    {/* COVID Data */}
+                                    <Box
+                                        flex={1}
+                                        bg="white"
+                                        borderRadius="xl"
+                                        p={6}
+                                        boxShadow="md"
+                                        overflow="hidden"
+                                    >
+                                        <Heading
+                                            size="md"
+                                            mb={4}
+                                            color="#2D3748"
+                                        >
+                                            COVID-Related Signage
+                                        </Heading>
+                                        <Badge mb={4} colorScheme="orange">
+                                            Total:{" "}
+                                            {processedData.covidData.reduce(
+                                                (total, substrate) =>
+                                                    total + substrate.count,
+                                                0
+                                            )}
+                                        </Badge>
+                                        <ResponsiveContainer
+                                            width="100%"
+                                            height={300}
+                                        >
+                                            <PieChart>
+                                                <Pie
+                                                    activeIndex={activePieIndex}
+                                                    activeShape={
+                                                        renderActiveShape
+                                                    }
+                                                    data={
+                                                        processedData.covidData
+                                                    }
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={60}
+                                                    outerRadius={80}
+                                                    dataKey="count"
+                                                    nameKey="category"
+                                                    onMouseEnter={onPieEnter}
+                                                >
+                                                    {processedData.covidData &&
+                                                        processedData.covidData.map(
+                                                            (entry, index) => (
+                                                                <Cell
+                                                                    key={`cell-${index}`}
+                                                                    fill={
+                                                                        pieColors[
+                                                                            index %
+                                                                                pieColors.length
+                                                                        ]
+                                                                    }
+                                                                />
+                                                            )
+                                                        )}
+                                                </Pie>
+                                                <Tooltip />
+                                                <Legend />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </Box>
+                                </Flex>
+                            </>
+                        ) : (
+                            <Box h="calc(100vh - 200px)">
+                                <MapView
+                                    data={data}
+                                    feature={feature}
+                                    subFeature={subFeature}
+                                    view={view}
+                                    processedData={processedData}
+                                />
                             </Box>
-                        </Flex>
+                        )}
                     </>
                 ) : (
                     <Box p={5}>
