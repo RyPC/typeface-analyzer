@@ -21,9 +21,13 @@ import {
     Text,
     Textarea,
     VStack,
+    Alert,
+    AlertIcon,
+    Center,
+    Spinner,
 } from "@chakra-ui/react";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import {
     TYPEFACE_STYLES,
@@ -35,6 +39,8 @@ import {
 export default function AddModal({ data, setData, isOpen, onClose }) {
     const [photo, setPhoto] = useState(null);
     const [photoPreview, setPhotoPreview] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     const [formData, setFormData] = useState({
         placement: "",
@@ -54,6 +60,75 @@ export default function AddModal({ data, setData, isOpen, onClose }) {
         covidRelated: false,
         additionalNotes: "",
     });
+
+    // Fetch next photo from batch data when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            fetchNextPhoto();
+        }
+    }, [isOpen]);
+
+    const fetchNextPhoto = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await fetch(
+                "http://localhost:3001/api/batch/next"
+            );
+            if (!response.ok) {
+                throw new Error("Failed to fetch photo data");
+            }
+            const data = await response.json();
+
+            // Set the photo and form data from the response
+            if (data.imageUrl) {
+                setPhotoPreview(data.imageUrl);
+                setPhoto({ name: "batch-image.jpg" }); // Dummy file object
+            }
+
+            // Pre-fill form data if available
+            if (data.formData) {
+                // Set the main form data
+                setFormData({
+                    placement: data.formData.placement || "",
+                    additionalNotes: data.formData.additionalNotes || "",
+                    trueSign: data.formData.trueSign || false,
+                    confidence: data.formData.confidence || "",
+                    confidenceReasoning:
+                        data.formData.confidenceReasoning || "",
+                    additionalInfo: data.formData.additionalInfo || "",
+                    typefaces: data.formData.typefaces || [],
+                });
+
+                console.log(data.formData);
+
+                // If there are typefaces, set the first one as current typeface
+                if (
+                    data.formData.typefaces &&
+                    data.formData.typefaces.length > 0
+                ) {
+                    setCurrentTypeface({
+                        typefaceStyle:
+                            data.formData.typefaces[0].typefaceStyle || [],
+                        text: data.formData.typefaces[0].text || "",
+                        letteringOntology:
+                            data.formData.typefaces[0].letteringOntology || [],
+                        messageFunction:
+                            data.formData.typefaces[0].messageFunction || "",
+                        covidRelated:
+                            data.formData.typefaces[0].covidRelated || false,
+                        additionalNotes:
+                            data.formData.typefaces[0].additionalNotes || "",
+                    });
+                }
+            }
+        } catch (err) {
+            setError(err.message);
+            console.error("Error fetching photo:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const closeModal = () => {
         resetForm();
@@ -99,11 +174,26 @@ export default function AddModal({ data, setData, isOpen, onClose }) {
             <ModalOverlay />
             <ModalContent>
                 <ModalHeader>
-                    {photo === null ? "Upload Photo" : "Edit Details"}
+                    {loading
+                        ? "Loading..."
+                        : photo === null
+                        ? "Upload Photo"
+                        : "Edit Details"}
                 </ModalHeader>
                 <ModalCloseButton />
                 <ModalBody>
-                    {photo === null ? (
+                    {error && (
+                        <Alert status="error" mb={4}>
+                            <AlertIcon />
+                            {error}
+                        </Alert>
+                    )}
+
+                    {loading ? (
+                        <Center>
+                            <Spinner size="xl" />
+                        </Center>
+                    ) : photo === null ? (
                         <FormControl>
                             <FormLabel>Photo Upload</FormLabel>
                             <Input
@@ -131,6 +221,7 @@ export default function AddModal({ data, setData, isOpen, onClose }) {
                             <FormControl>
                                 <FormLabel>Placement</FormLabel>
                                 <Select
+                                    value={formData.placement}
                                     onChange={(e) =>
                                         setFormData({
                                             ...formData,
@@ -147,6 +238,7 @@ export default function AddModal({ data, setData, isOpen, onClose }) {
                             <FormControl>
                                 <FormLabel>Additional Notes</FormLabel>
                                 <Textarea
+                                    value={formData.additionalNotes}
                                     onChange={(e) =>
                                         setFormData({
                                             ...formData,
@@ -158,6 +250,7 @@ export default function AddModal({ data, setData, isOpen, onClose }) {
 
                             <FormControl>
                                 <Checkbox
+                                    isChecked={formData.trueSign}
                                     onChange={(e) =>
                                         setFormData({
                                             ...formData,
@@ -173,6 +266,7 @@ export default function AddModal({ data, setData, isOpen, onClose }) {
                                 <FormLabel>Confidence</FormLabel>
                                 <Input
                                     type="number"
+                                    value={formData.confidence}
                                     onChange={(e) =>
                                         setFormData({
                                             ...formData,
@@ -185,6 +279,7 @@ export default function AddModal({ data, setData, isOpen, onClose }) {
                             <FormControl>
                                 <FormLabel>Confidence Reasoning</FormLabel>
                                 <Textarea
+                                    value={formData.confidenceReasoning}
                                     onChange={(e) =>
                                         setFormData({
                                             ...formData,
@@ -197,6 +292,7 @@ export default function AddModal({ data, setData, isOpen, onClose }) {
                             <FormControl>
                                 <FormLabel>Additional Info</FormLabel>
                                 <Textarea
+                                    value={formData.additionalInfo}
                                     onChange={(e) =>
                                         setFormData({
                                             ...formData,
