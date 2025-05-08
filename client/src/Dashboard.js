@@ -419,6 +419,145 @@ export default function Dashboard({
         );
     };
 
+    const handleJSONUpload = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const jsonData = JSON.parse(reader.result);
+
+                    // Data to be tracked
+                    const typefaceStyleCounts = {};
+                    const letteringOntologyCounts = {};
+                    const messageFunctionCounts = {};
+                    const placementCounts = {};
+                    const covidRelatedCounts = {
+                        "COVID-Related": 0,
+                        "Non-COVID": 0,
+                    };
+
+                    const municipalities = new Set(["All Municipalities"]);
+
+                    // Process the JSON data
+                    jsonData.forEach((photo) => {
+                        if (photo.municipality) {
+                            municipalities.add(photo.municipality.trim());
+                        }
+
+                        photo.substrates?.forEach((substrate) => {
+                            if (substrate.placement) {
+                                placementCounts[substrate.placement] =
+                                    (placementCounts[substrate.placement] ||
+                                        0) + 1;
+                            }
+
+                            substrate.typefaces?.forEach((typeface) => {
+                                // Count typeface styles
+                                typeface.typefaceStyle?.forEach((style) => {
+                                    typefaceStyleCounts[style] =
+                                        (typefaceStyleCounts[style] || 0) + 1;
+                                });
+
+                                // Count lettering ontologies
+                                typeface.letteringOntology?.forEach(
+                                    (ontology) => {
+                                        letteringOntologyCounts[ontology] =
+                                            (letteringOntologyCounts[
+                                                ontology
+                                            ] || 0) + 1;
+                                    }
+                                );
+
+                                // Count message functions
+                                typeface.messageFunction?.forEach(
+                                    (msgFunction) => {
+                                        messageFunctionCounts[msgFunction] =
+                                            (messageFunctionCounts[
+                                                msgFunction
+                                            ] || 0) + 1;
+                                    }
+                                );
+
+                                // Count COVID-related
+                                if (typeface.covidRelated) {
+                                    covidRelatedCounts["COVID-Related"]++;
+                                } else {
+                                    covidRelatedCounts["Non-COVID"]++;
+                                }
+                            });
+                        });
+                    });
+
+                    setData(jsonData);
+                    setMunicipalities([...municipalities]);
+
+                    // Process data into counts
+                    const typefaceData = Object.keys(typefaceStyleCounts).map(
+                        (key) => ({
+                            typeface: key,
+                            count: typefaceStyleCounts[key],
+                        })
+                    );
+
+                    const letteringData = Object.keys(letteringOntologyCounts)
+                        .filter((key) => LETTERING_ONTOLOGIES.includes(key))
+                        .map((key) => ({
+                            ontology: key,
+                            count: letteringOntologyCounts[key],
+                        }));
+                    letteringData.push({
+                        ontology: "Other",
+                        count: Object.keys(letteringOntologyCounts)
+                            .filter(
+                                (key) => !LETTERING_ONTOLOGIES.includes(key)
+                            )
+                            .reduce((acc, key) => {
+                                return acc + letteringOntologyCounts[key] || 0;
+                            }, 0),
+                    });
+
+                    const messageFunctionData = Object.keys(
+                        messageFunctionCounts
+                    ).map((key) => ({
+                        function: key,
+                        count: messageFunctionCounts[key],
+                    }));
+
+                    const placementData = Object.keys(placementCounts).map(
+                        (key) => ({
+                            placement: key,
+                            count: placementCounts[key],
+                        })
+                    );
+
+                    const covidData = Object.keys(covidRelatedCounts).map(
+                        (key) => ({
+                            category: key,
+                            count: covidRelatedCounts[key],
+                            color:
+                                key === "COVID-Related" ? "#FF8042" : "#0088FE",
+                        })
+                    );
+
+                    setProcessedData({
+                        typefaceData,
+                        letteringData,
+                        messageFunctionData,
+                        placementData,
+                        covidData,
+                    });
+                } catch (error) {
+                    console.error("Error parsing JSON file:", error);
+                    alert(
+                        "Error parsing JSON file. Please make sure it's in the correct format."
+                    );
+                }
+            };
+            reader.readAsText(file);
+        }
+    };
+
     return (
         <Box flex={1} w="full" height="full">
             <Flex
@@ -835,28 +974,53 @@ export default function Dashboard({
                     </>
                 ) : (
                     <Box p={5}>
-                        <label htmlFor="csv_upload">
-                            <Text
-                                as="b"
-                                p="8px"
-                                borderRadius="4px"
-                                backgroundColor="#FFF"
-                                color="#000C5C"
-                                _hover={{ backgroundColor: "#FFF8" }}
-                                transition="ease-in-out 0.2s"
-                            >
-                                Upload Data
-                            </Text>
-                        </label>
+                        <HStack spacing={4}>
+                            <label htmlFor="csv_upload">
+                                <Text
+                                    as="b"
+                                    p="8px"
+                                    borderRadius="4px"
+                                    backgroundColor="#FFF"
+                                    color="#000C5C"
+                                    _hover={{ backgroundColor: "#FFF8" }}
+                                    transition="ease-in-out 0.2s"
+                                >
+                                    Upload CSV
+                                </Text>
+                            </label>
 
-                        <input
-                            type="file"
-                            id="csv_upload"
-                            name="csv_upload"
-                            accept=".csv"
-                            onChange={handleFileUpload}
-                            hidden
-                        />
+                            <input
+                                type="file"
+                                id="csv_upload"
+                                name="csv_upload"
+                                accept=".csv"
+                                onChange={handleFileUpload}
+                                hidden
+                            />
+
+                            <label htmlFor="json_upload">
+                                <Text
+                                    as="b"
+                                    p="8px"
+                                    borderRadius="4px"
+                                    backgroundColor="#FFF"
+                                    color="#000C5C"
+                                    _hover={{ backgroundColor: "#FFF8" }}
+                                    transition="ease-in-out 0.2s"
+                                >
+                                    Upload JSON
+                                </Text>
+                            </label>
+
+                            <input
+                                type="file"
+                                id="json_upload"
+                                name="json_upload"
+                                accept=".json"
+                                onChange={handleJSONUpload}
+                                hidden
+                            />
+                        </HStack>
                     </Box>
                 )}
             </Flex>
