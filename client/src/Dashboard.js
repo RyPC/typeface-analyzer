@@ -221,9 +221,9 @@ export default function Dashboard({
                             /^Covid related/.test(key) &&
                             currentTypeface
                         ) {
-                            currentTypeface["covidRelated"] = value === "TRUE";
+                            currentTypeface["covidRelated"] = value === "true";
                             // Add to covid related counts
-                            if (value === "TRUE") {
+                            if (value === "true") {
                                 covidRelatedCounts["COVID-Related"]++;
                             } else {
                                 covidRelatedCounts["Non-COVID"]++;
