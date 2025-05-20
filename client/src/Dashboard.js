@@ -108,9 +108,15 @@ export default function Dashboard({
                         const key = header[i];
                         const value = row[i];
 
-                        // Iniital photo data conditions
+                        // Initial photo data conditions
                         if (key === "Submission ID") {
                             photo["id"] = value;
+                        } else if (key === "Last updated") {
+                            photo["lastUpdated"] = value;
+                        } else if (key === "Submission started") {
+                            photo["submissionStarted"] = value;
+                        } else if (key === "Status") {
+                            photo["status"] = value;
                         } else if (key === "Initials") {
                             photo["initials"] = value;
                         } else if (key === "Municipality") {
@@ -121,6 +127,8 @@ export default function Dashboard({
                         } else if (key === "Number of substrates") {
                             photo["substrateCount"] = value;
                             photo["substrates"] = [];
+                        } else if (key === "Photo link") {
+                            photo["photoLink"] = value;
                         }
 
                         // Multiple substrate conditions
