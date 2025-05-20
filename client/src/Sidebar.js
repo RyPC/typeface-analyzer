@@ -94,8 +94,8 @@ export default function Sidebar({
                     <VStack spacing={6} align="stretch" flex={1} px={3}>
                         <Text fontSize="sm" color="whiteAlpha.700">
                             {Object.keys(data).length > 0
-                                ? `${Object.keys(data).length} photo loaded`
-                                : "No data loaded"}
+                                ? `${Object.keys(data).length} photos loaded`
+                                : "No photos loaded"}
                         </Text>
 
                         <Heading as="h2" size="lg" mb={6} textAlign="center">
