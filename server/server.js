@@ -2,19 +2,31 @@ const express = require("express");
 const cors = require("cors");
 const fs = require("fs").promises;
 const path = require("path");
+const { MongoClient } = require("mongodb");
 require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// MongoDB connection URI
+const uri = process.env.MONGODB_URI || "mongodb://localhost:27017";
+const client = new MongoClient(uri);
+
 // Middleware
 app.use(cors());
 app.use(express.json()); // Parse JSON request bodies
 
-// Sample route
-app.get("/", (req, res) => {
-    res.send("Hello from the backend!");
-});
+// Connect to MongoDB
+async function connectToMongo() {
+    try {
+        await client.connect();
+        console.log("Connected to MongoDB");
+    } catch (error) {
+        console.error("MongoDB connection error:", error);
+    }
+}
+
+connectToMongo();
 
 // Route to get next photo from batch data
 app.get("/api/batch/next", async (req, res) => {
@@ -81,6 +93,215 @@ app.get("/api/batch/next", async (req, res) => {
     } catch (error) {
         console.error("Error reading batch data:", error);
         res.status(500).json({ message: "Error reading batch data" });
+    }
+});
+
+// Route to get typeface style statistics
+app.get(
+    ["/api/stats/typeface", "/api/stats/typeface/:muni"],
+    async (req, res) => {
+        try {
+            const db = client.db("visualTextDB");
+            const pipeline = [
+                // Match by municipality if provided
+                ...(req.params.muni
+                    ? [{ $match: { municipality: req.params.muni } }]
+                    : []),
+                // Unwind the substrates array
+                { $unwind: "$substrates" },
+                // Unwind the typefaces array within each substrate
+                { $unwind: "$substrates.typefaces" },
+                // Unwind the typefaceStyle array within each typeface
+                { $unwind: "$substrates.typefaces.typefaceStyle" },
+                // Group by typefaceStyle and count occurrences
+                {
+                    $group: {
+                        _id: "$substrates.typefaces.typefaceStyle",
+                        count: { $sum: 1 },
+                    },
+                },
+                // Sort by count in descending order
+                { $sort: { count: -1 } },
+            ];
+
+            const result = await db
+                .collection("photos")
+                .aggregate(pipeline)
+                .toArray();
+            res.json(result);
+        } catch (error) {
+            console.error("Error getting typeface statistics:", error);
+            res.status(500).json({
+                message: "Error getting typeface statistics",
+            });
+        }
+    }
+);
+
+// Route to get lettering ontology statistics
+app.get(
+    ["/api/stats/lettering-ontology", "/api/stats/lettering-ontology/:muni"],
+    async (req, res) => {
+        try {
+            const db = client.db("visualTextDB");
+            const pipeline = [
+                // Match by municipality if provided
+                ...(req.params.muni
+                    ? [{ $match: { municipality: req.params.muni } }]
+                    : []),
+                { $unwind: "$substrates" },
+                { $unwind: "$substrates.typefaces" },
+                // Unwind the lettering ontology array
+                { $unwind: "$substrates.typefaces.letteringOntology" },
+                // Trim whitespace from each ontology value
+                {
+                    $addFields: {
+                        "substrates.typefaces.letteringOntology": {
+                            $trim: {
+                                input: "$substrates.typefaces.letteringOntology",
+                            },
+                        },
+                    },
+                },
+                {
+                    $group: {
+                        _id: "$substrates.typefaces.letteringOntology",
+                        count: { $sum: 1 },
+                    },
+                },
+                { $sort: { count: -1 } },
+            ];
+
+            const result = await db
+                .collection("photos")
+                .aggregate(pipeline)
+                .toArray();
+            res.json(result);
+        } catch (error) {
+            console.error(
+                "Error getting lettering ontology statistics:",
+                error
+            );
+            res.status(500).json({
+                message: "Error getting lettering ontology statistics",
+            });
+        }
+    }
+);
+
+// Route to get message function statistics
+app.get(
+    ["/api/stats/message-function", "/api/stats/message-function/:muni"],
+    async (req, res) => {
+        try {
+            const db = client.db("visualTextDB");
+            const pipeline = [
+                // Match by municipality if provided
+                ...(req.params.muni
+                    ? [{ $match: { municipality: req.params.muni } }]
+                    : []),
+                { $unwind: "$substrates" },
+                { $unwind: "$substrates.typefaces" },
+                // Unwind the message function array
+                { $unwind: "$substrates.typefaces.messageFunction" },
+                // Trim whitespace from each message function value
+                {
+                    $addFields: {
+                        "substrates.typefaces.messageFunction": {
+                            $trim: {
+                                input: "$substrates.typefaces.messageFunction",
+                            },
+                        },
+                    },
+                },
+                {
+                    $group: {
+                        _id: "$substrates.typefaces.messageFunction",
+                        count: { $sum: 1 },
+                    },
+                },
+                { $sort: { count: -1 } },
+            ];
+
+            const result = await db
+                .collection("photos")
+                .aggregate(pipeline)
+                .toArray();
+            res.json(result);
+        } catch (error) {
+            console.error("Error getting message function statistics:", error);
+            res.status(500).json({
+                message: "Error getting message function statistics",
+            });
+        }
+    }
+);
+
+// Route to get placement distribution statistics
+app.get(
+    ["/api/stats/placement", "/api/stats/placement/:muni"],
+    async (req, res) => {
+        try {
+            const db = client.db("visualTextDB");
+            const pipeline = [
+                // Match by municipality if provided
+                ...(req.params.muni
+                    ? [{ $match: { municipality: req.params.muni } }]
+                    : []),
+                { $unwind: "$substrates" },
+                {
+                    $group: {
+                        _id: "$substrates.placement",
+                        count: { $sum: 1 },
+                    },
+                },
+                { $sort: { count: -1 } },
+            ];
+
+            const result = await db
+                .collection("photos")
+                .aggregate(pipeline)
+                .toArray();
+            res.json(result);
+        } catch (error) {
+            console.error("Error getting placement statistics:", error);
+            res.status(500).json({
+                message: "Error getting placement statistics",
+            });
+        }
+    }
+);
+
+// Route to get COVID-related statistics
+app.get(["/api/stats/covid", "/api/stats/covid/:muni"], async (req, res) => {
+    try {
+        const db = client.db("visualTextDB");
+        const pipeline = [
+            // Match by municipality if provided
+            ...(req.params.muni
+                ? [{ $match: { municipality: req.params.muni } }]
+                : []),
+            { $unwind: "$substrates" },
+            { $unwind: "$substrates.typefaces" },
+            {
+                $group: {
+                    _id: "$substrates.typefaces.covidRelated",
+                    count: { $sum: 1 },
+                },
+            },
+            { $sort: { count: -1 } },
+        ];
+
+        const result = await db
+            .collection("photos")
+            .aggregate(pipeline)
+            .toArray();
+        res.json(result);
+    } catch (error) {
+        console.error("Error getting COVID-related statistics:", error);
+        res.status(500).json({
+            message: "Error getting COVID-related statistics",
+        });
     }
 });
 
