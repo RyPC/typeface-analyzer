@@ -9,7 +9,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // MongoDB connection URI
-const uri = process.env.MONGODB_URI || "mongodb://localhost:27017";
+const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri);
 
 // Middleware
@@ -301,6 +301,40 @@ app.get(["/api/stats/covid", "/api/stats/covid/:muni"], async (req, res) => {
         console.error("Error getting COVID-related statistics:", error);
         res.status(500).json({
             message: "Error getting COVID-related statistics",
+        });
+    }
+});
+
+// Route to get all unique municipalities
+app.get("/api/municipalities", async (req, res) => {
+    try {
+        const db = client.db("visualTextDB");
+        const pipeline = [
+            // Group by municipality and get unique values
+            {
+                $group: {
+                    _id: "$municipality",
+                },
+            },
+            // Sort alphabetically
+            {
+                $sort: { _id: 1 },
+            },
+        ];
+
+        const result = await db
+            .collection("photos")
+            .aggregate(pipeline)
+            .toArray();
+
+        // Transform the result to just return an array of municipality names
+        const municipalities = result.map((item) => item._id);
+
+        res.json(municipalities);
+    } catch (error) {
+        console.error("Error getting municipalities:", error);
+        res.status(500).json({
+            message: "Error getting municipalities",
         });
     }
 });

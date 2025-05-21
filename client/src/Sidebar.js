@@ -16,7 +16,7 @@ import {
     ChevronRightIcon,
 } from "@chakra-ui/icons";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CsvToJsonConverter from "./csvToJson";
 
 export default function Sidebar({
@@ -24,7 +24,6 @@ export default function Sidebar({
     onOpen,
     view,
     setView,
-    municipalities,
     municipality,
     updateMunicipality,
     feature,
@@ -34,6 +33,28 @@ export default function Sidebar({
     processedData,
 }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [municipalities, setMunicipalities] = useState([]);
+
+    // Fetch municipalities when component mounts
+    useEffect(() => {
+        const fetchMunicipalities = async () => {
+            try {
+                const response = await fetch(
+                    "http://localhost:3001/api/municipalities"
+                );
+                if (!response.ok) {
+                    throw new Error("Failed to fetch municipalities");
+                }
+                const data = await response.json();
+                setMunicipalities(data);
+                updateMunicipality("All Municipalities");
+            } catch (error) {
+                console.error("Error fetching municipalities:", error);
+            }
+        };
+
+        fetchMunicipalities();
+    }, []);
 
     // Toggle sidebar collapse state
     const toggleCollapse = () => {
@@ -122,6 +143,9 @@ export default function Sidebar({
                                             updateMunicipality(e.target.value)
                                         }
                                     >
+                                        <option value="All Municipalities">
+                                            All Municipalities
+                                        </option>
                                         {municipalities.map((muni) => (
                                             <option key={muni} value={muni}>
                                                 {muni}
