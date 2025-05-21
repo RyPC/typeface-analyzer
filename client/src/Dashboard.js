@@ -1,14 +1,4 @@
-import {
-    Box,
-    Flex,
-    VStack,
-    Button,
-    Select,
-    Text,
-    HStack,
-    Badge,
-    Heading,
-} from "@chakra-ui/react";
+import { Box, Flex, Text, Badge, Heading } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import {
     Bar,
@@ -18,15 +8,12 @@ import {
     YAxis,
     Tooltip,
     ResponsiveContainer,
-    Label,
     PieChart,
     Pie,
     Cell,
     Legend,
     Sector,
 } from "recharts";
-
-import Papa from "papaparse";
 
 import { LETTERING_ONTOLOGIES } from "./constants";
 import MapView from "./MapView";
@@ -66,7 +53,7 @@ export default function Dashboard({
 
             setIsLoading(true);
             try {
-                const baseUrl = "http://localhost:3001"; // Add the base URL for the API
+                const baseUrl = "http://localhost:3001";
                 const muniParam =
                     selectedMunicipality === "All Municipalities"
                         ? ""

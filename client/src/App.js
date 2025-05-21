@@ -35,95 +35,6 @@ export default function App() {
 
     // Update processedData to display data for new municipality
     const updateSelectedMunicipality = (muni) => {
-        // Data to be tracked
-        const typefaceStyleCounts = {};
-        const letteringOntologyCounts = {};
-        const messageFunctionCounts = {};
-        const placementCounts = {};
-        const covidRelatedCounts = {
-            "COVID-Related": 0,
-            "Non-COVID": 0,
-        };
-
-        // Go through photos and count
-        data.filter(
-            (photo) =>
-                muni === "All Municipalities" || photo.municipality === muni
-        ).forEach((photo) => {
-            photo.substrates.forEach((substrate) => {
-                substrate.typefaces.forEach((typeface) => {
-                    typeface.typefaceStyle.forEach((style) => {
-                        typefaceStyleCounts[style] =
-                            (typefaceStyleCounts[style] || 0) + 1;
-                    });
-
-                    typeface.letteringOntology.forEach((ontology) => {
-                        letteringOntologyCounts[ontology] =
-                            (letteringOntologyCounts[ontology] || 0) + 1;
-                    });
-
-                    typeface.messageFunction.forEach((msgFunction) => {
-                        messageFunctionCounts[msgFunction] =
-                            (messageFunctionCounts[msgFunction] || 0) + 1;
-                    });
-
-                    placementCounts[substrate.placement] =
-                        (placementCounts[substrate.placement] || 0) + 1;
-
-                    covidRelatedCounts[
-                        typeface.covidRelated ? "COVID-Related" : "Non-COVID"
-                    ]++;
-                });
-            });
-        });
-
-        // Process data into counts
-        // Convert to arrays for charts
-        const typefaceData = Object.keys(typefaceStyleCounts).map((key) => ({
-            typeface: key,
-            count: typefaceStyleCounts[key],
-        }));
-
-        const letteringData = Object.keys(letteringOntologyCounts)
-            .filter((key) => LETTERING_ONTOLOGIES.includes(key))
-            .map((key) => ({
-                ontology: key,
-                count: letteringOntologyCounts[key],
-            }));
-        letteringData.push({
-            ontology: "Other",
-            count: Object.keys(letteringOntologyCounts)
-                .filter((key) => !LETTERING_ONTOLOGIES.includes(key))
-                .reduce((acc, key) => {
-                    return acc + letteringOntologyCounts[key] || 0;
-                }, 0),
-        });
-
-        const messageFunctionData = Object.keys(messageFunctionCounts).map(
-            (key) => ({
-                function: key,
-                count: messageFunctionCounts[key],
-            })
-        );
-
-        const placementData = Object.keys(placementCounts).map((key) => ({
-            placement: key,
-            count: placementCounts[key],
-        }));
-
-        const covidData = Object.keys(covidRelatedCounts).map((key) => ({
-            category: key,
-            count: covidRelatedCounts[key],
-            color: key === "COVID-Related" ? "#FF8042" : "#0088FE",
-        }));
-        setProcessedData({
-            typefaceData,
-            letteringData,
-            messageFunctionData,
-            placementData,
-            covidData,
-        });
-
         setSelectedMunicipality(muni);
     };
 
@@ -203,7 +114,6 @@ export default function App() {
                         data={data}
                         onOpen={onOpen}
                         view={view}
-                        municipalities={municipalities}
                         setView={setView}
                         municipality={selectedMunicipality}
                         updateMunicipality={updateSelectedMunicipality}
