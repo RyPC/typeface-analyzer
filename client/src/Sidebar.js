@@ -17,6 +17,7 @@ import {
 } from "@chakra-ui/icons";
 
 import { useState } from "react";
+import CsvToJsonConverter from "./csvToJson";
 
 export default function Sidebar({
     data,
@@ -37,26 +38,6 @@ export default function Sidebar({
     // Toggle sidebar collapse state
     const toggleCollapse = () => {
         setIsCollapsed(!isCollapsed);
-    };
-
-    const handleDownloadJSON = () => {
-        // Simple implementation - you might want to customize based on your data structure
-        if (Object.keys(data).length <= 0) return;
-
-        // Convert data to JSON format
-        const jsonContent = JSON.stringify(data, null, 2);
-
-        // Create a downloadable link
-        const blob = new Blob([jsonContent], {
-            type: "application/json;charset=utf-8;",
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", "typeface_data.json");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
     };
 
     return (
@@ -260,18 +241,6 @@ export default function Sidebar({
                     {isCollapsed ? (
                         <>
                             <Button
-                                onClick={handleDownloadJSON}
-                                disabled={Object.keys(data).length <= 0}
-                                p={0}
-                                minW="40px"
-                                h="40px"
-                                borderRadius="full"
-                                aria-label="Download JSON"
-                            >
-                                <DownloadIcon boxSize={5} />
-                            </Button>
-
-                            <Button
                                 onClick={onOpen}
                                 disabled={Object.keys(data).length <= 0}
                                 p={0}
@@ -296,17 +265,7 @@ export default function Sidebar({
                         </>
                     ) : (
                         <>
-                            <Button
-                                onClick={handleDownloadJSON}
-                                disabled={Object.keys(data).length <= 0}
-                                colorScheme="blue"
-                                leftIcon={<DownloadIcon />}
-                                w="full"
-                                variant="solid"
-                                _hover={{ bg: "blue.500" }}
-                            >
-                                Download JSON
-                            </Button>
+                            <CsvToJsonConverter />
 
                             <Button
                                 onClick={onOpen}
