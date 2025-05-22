@@ -18,6 +18,14 @@ import {
 
 import { useState, useEffect } from "react";
 import CsvToJsonConverter from "./csvToJson";
+import {
+    TYPEFACE_STYLES,
+    LETTERING_ONTOLOGIES,
+    PLACEMENTS,
+    MESSAGE_FUNCTIONS,
+} from "./constants";
+
+const API_URL = process.env.REACT_APP_API_URL;
 
 export default function Sidebar({
     data,
@@ -39,9 +47,8 @@ export default function Sidebar({
     useEffect(() => {
         const fetchMunicipalities = async () => {
             try {
-                const response = await fetch(
-                    "http://localhost:3001/api/municipalities"
-                );
+                const url = `${API_URL}/api/municipalities`;
+                const response = await fetch(url);
                 if (!response.ok) {
                     throw new Error("Failed to fetch municipalities");
                 }
@@ -168,7 +175,8 @@ export default function Sidebar({
                                         value={feature}
                                         onChange={(e) => {
                                             setFeature(e.target.value);
-                                            console.log(e.target.value);
+                                            // Reset subFeature when changing features
+                                            setSubFeature(null);
                                         }}
                                     >
                                         <option value="typeface">
@@ -200,60 +208,50 @@ export default function Sidebar({
                                         }
                                     >
                                         {feature === "typeface" &&
-                                            processedData?.typefaceData?.map(
-                                                (item) => (
-                                                    <option
-                                                        key={item.typeface}
-                                                        value={item.typeface}
-                                                    >
-                                                        {item.typeface}
-                                                    </option>
-                                                )
-                                            )}
+                                            TYPEFACE_STYLES.map((style) => (
+                                                <option
+                                                    key={style}
+                                                    value={style}
+                                                >
+                                                    {style}
+                                                </option>
+                                            ))}
                                         {feature === "lettering" &&
-                                            processedData?.letteringData?.map(
-                                                (item) => (
+                                            LETTERING_ONTOLOGIES.map(
+                                                (ontology) => (
                                                     <option
-                                                        key={item.ontology}
-                                                        value={item.ontology}
+                                                        key={ontology}
+                                                        value={ontology}
                                                     >
-                                                        {item.ontology}
+                                                        {ontology}
                                                     </option>
                                                 )
                                             )}
                                         {feature === "message" &&
-                                            processedData?.messageFunctionData?.map(
-                                                (item) => (
-                                                    <option
-                                                        key={item.function}
-                                                        value={item.function}
-                                                    >
-                                                        {item.function}
-                                                    </option>
-                                                )
-                                            )}
+                                            MESSAGE_FUNCTIONS.map((func) => (
+                                                <option key={func} value={func}>
+                                                    {func}
+                                                </option>
+                                            ))}
                                         {feature === "placement" &&
-                                            processedData?.placementData?.map(
-                                                (item) => (
-                                                    <option
-                                                        key={item.placement}
-                                                        value={item.placement}
-                                                    >
-                                                        {item.placement}
-                                                    </option>
-                                                )
-                                            )}
-                                        {feature === "covid" &&
-                                            processedData?.covidData?.map(
-                                                (item) => (
-                                                    <option
-                                                        key={item.category}
-                                                        value={item.category}
-                                                    >
-                                                        {item.category}
-                                                    </option>
-                                                )
-                                            )}
+                                            PLACEMENTS.map((placement) => (
+                                                <option
+                                                    key={placement}
+                                                    value={placement}
+                                                >
+                                                    {placement}
+                                                </option>
+                                            ))}
+                                        {feature === "covid" && (
+                                            <>
+                                                <option value="COVID-Related">
+                                                    COVID-Related
+                                                </option>
+                                                <option value="Non-COVID">
+                                                    Non-COVID
+                                                </option>
+                                            </>
+                                        )}
                                     </Select>
                                 </Box>
                             </VStack>

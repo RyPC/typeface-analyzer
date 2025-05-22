@@ -3,22 +3,43 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Box } from "@chakra-ui/react";
 import orangeCountyData from "./data/orange_county.geojson";
+import {
+    TYPEFACE_STYLES,
+    LETTERING_ONTOLOGIES,
+    PLACEMENTS,
+    MESSAGE_FUNCTIONS,
+} from "./constants";
 
 // Replace with your Mapbox access token
 mapboxgl.accessToken =
     "pk.eyJ1IjoicnlwYyIsImEiOiJjbWFmNms0eGgwMmVpMmlweWllcTdiMnNkIn0.cu50O9h4v_znUop-pSXOqQ";
 
-export default function MapView({
-    data,
-    feature,
-    subFeature,
-    view,
-    processedData,
-}) {
+const API_URL = process.env.REACT_APP_API_URL;
+
+// Helper function to get default subFeature based on feature
+const getDefaultSubFeature = (feature) => {
+    switch (feature) {
+        case "typeface":
+            return TYPEFACE_STYLES[0];
+        case "lettering":
+            return LETTERING_ONTOLOGIES[0];
+        case "message":
+            return MESSAGE_FUNCTIONS[0];
+        case "placement":
+            return PLACEMENTS[0];
+        case "covid":
+            return "COVID-Related";
+        default:
+            return null;
+    }
+};
+
+export default function MapView({ feature, subFeature, view }) {
     const mapContainer = useRef(null);
     const map = useRef(null);
     const [mapData, setMapData] = useState(null);
     const [geoJsonData, setGeoJsonData] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
     const popup = useRef(null);
 
     // Initialize popup
@@ -37,11 +58,38 @@ export default function MapView({
         fetch(orangeCountyData)
             .then((response) => response.json())
             .then((data) => {
-                console.log("Loaded GeoJSON:", data);
                 setGeoJsonData(data);
             })
             .catch((error) => console.error("Error loading GeoJSON:", error));
     }, []);
+
+    // Fetch map data when feature or subFeature changes
+    useEffect(() => {
+        const fetchMapData = async () => {
+            // If no subFeature is selected, use the default for the current feature
+            const currentSubFeature =
+                subFeature || getDefaultSubFeature(feature);
+            if (!feature || !currentSubFeature) return;
+
+            setIsLoading(true);
+            try {
+                const url = `${API_URL}/api/map-data?feature=${feature}&subFeature=${currentSubFeature}`;
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                setMapData(data);
+            } catch (error) {
+                console.error("Error fetching map data:", error);
+                setMapData(null);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchMapData();
+    }, [feature, subFeature]);
 
     useEffect(() => {
         if (map.current) return; // initialize map only once
@@ -126,96 +174,15 @@ export default function MapView({
     };
 
     useEffect(() => {
-        if (!map.current || !data || !geoJsonData) {
+        if (!map.current || !mapData || !geoJsonData) {
             console.log("Early return conditions:", {
                 hasMap: !!map.current,
-                hasData: !!data,
+                hasData: !!mapData,
                 hasGeoJson: !!geoJsonData,
                 view,
             });
             return;
         }
-
-        // If we don't have feature or subFeature yet, use the first available options
-        const currentFeature = feature || "typeface";
-        const currentSubFeature =
-            subFeature || processedData?.typefaceData?.[0]?.typeface;
-
-        if (!currentFeature || !currentSubFeature) {
-            console.log("No feature or subfeature selected yet");
-            return;
-        }
-
-        // Process data for the selected feature
-        const processData = () => {
-            const cityData = {};
-
-            data.forEach((photo) => {
-                const city = photo.municipality;
-                if (!cityData[city]) {
-                    cityData[city] = {
-                        total: 0,
-                        selected: 0,
-                    };
-                }
-
-                photo.substrates.forEach((substrate) => {
-                    substrate.typefaces.forEach((tf) => {
-                        cityData[city].total++;
-
-                        switch (currentFeature) {
-                            case "typeface":
-                                if (
-                                    tf.typefaceStyle.includes(currentSubFeature)
-                                ) {
-                                    cityData[city].selected++;
-                                }
-                                break;
-                            case "lettering":
-                                if (
-                                    tf.letteringOntology.includes(
-                                        currentSubFeature
-                                    )
-                                ) {
-                                    cityData[city].selected++;
-                                }
-                                break;
-                            case "message":
-                                if (
-                                    tf.messageFunction.includes(
-                                        currentSubFeature
-                                    )
-                                ) {
-                                    cityData[city].selected++;
-                                }
-                                break;
-                            case "placement":
-                                if (substrate.placement === currentSubFeature) {
-                                    cityData[city].selected++;
-                                }
-                                break;
-                            case "covid":
-                                if (
-                                    (currentSubFeature === "COVID-Related" &&
-                                        tf.covidRelated) ||
-                                    (currentSubFeature === "Non-COVID" &&
-                                        !tf.covidRelated)
-                                ) {
-                                    cityData[city].selected++;
-                                }
-                                break;
-                            default:
-                                break;
-                        }
-                    });
-                });
-            });
-
-            return cityData;
-        };
-
-        const cityData = processData();
-        setMapData(cityData);
 
         const source = map.current.getSource("orange-county");
         if (source) {
@@ -229,13 +196,13 @@ export default function MapView({
 
                     // Try to find a matching city name
                     const normalizedGeoName = normalizeCityName(cityName);
-                    const matchingCity = Object.keys(cityData).find(
+                    const matchingCity = Object.keys(mapData).find(
                         (dataCity) =>
                             normalizeCityName(dataCity) === normalizedGeoName
                     );
 
                     const cityStats = matchingCity
-                        ? cityData[matchingCity]
+                        ? mapData[matchingCity]
                         : { total: 0, selected: 0 };
                     const proportion =
                         cityStats.total > 0
@@ -292,13 +259,13 @@ export default function MapView({
 
                 // Find the matching city name in our data
                 const normalizedGeoName = normalizeCityName(cityName);
-                const matchingCity = Object.keys(cityData).find(
+                const matchingCity = Object.keys(mapData).find(
                     (dataCity) =>
                         normalizeCityName(dataCity) === normalizedGeoName
                 );
 
                 const cityStats = matchingCity
-                    ? cityData[matchingCity]
+                    ? mapData[matchingCity]
                     : { total: 0, selected: 0 };
                 const proportion =
                     cityStats.total > 0
@@ -331,7 +298,7 @@ export default function MapView({
                 }
             });
         }
-    }, [data, feature, subFeature, geoJsonData, view, processedData]);
+    }, [mapData, geoJsonData, view]);
 
     return (
         <Box
