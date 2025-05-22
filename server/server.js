@@ -339,5 +339,168 @@ app.get("/api/municipalities", async (req, res) => {
     }
 });
 
+// Route to get map data for a specific feature and subfeature
+app.get("/api/map-data", async (req, res) => {
+    try {
+        const { feature, subFeature } = req.query;
+        const db = client.db("visualTextDB");
+
+        let pipeline = [
+            // Unwind the substrates array
+            { $unwind: "$substrates" },
+            // Unwind the typefaces array within each substrate
+            { $unwind: "$substrates.typefaces" },
+            // Group by municipality and count occurrences
+            {
+                $group: {
+                    _id: "$municipality",
+                    total: { $sum: 1 },
+                    selected: {
+                        $sum: {
+                            $cond: [
+                                {
+                                    $switch: {
+                                        branches: [
+                                            {
+                                                case: {
+                                                    $eq: [feature, "typeface"],
+                                                },
+                                                then: {
+                                                    $cond: [
+                                                        {
+                                                            $isArray:
+                                                                "$substrates.typefaces.typefaceStyle",
+                                                        },
+                                                        {
+                                                            $in: [
+                                                                subFeature,
+                                                                "$substrates.typefaces.typefaceStyle",
+                                                            ],
+                                                        },
+                                                        {
+                                                            $eq: [
+                                                                "$substrates.typefaces.typefaceStyle",
+                                                                subFeature,
+                                                            ],
+                                                        },
+                                                    ],
+                                                },
+                                            },
+                                            {
+                                                case: {
+                                                    $eq: [feature, "lettering"],
+                                                },
+                                                then: {
+                                                    $cond: [
+                                                        {
+                                                            $isArray:
+                                                                "$substrates.typefaces.letteringOntology",
+                                                        },
+                                                        {
+                                                            $in: [
+                                                                subFeature,
+                                                                "$substrates.typefaces.letteringOntology",
+                                                            ],
+                                                        },
+                                                        {
+                                                            $eq: [
+                                                                "$substrates.typefaces.letteringOntology",
+                                                                subFeature,
+                                                            ],
+                                                        },
+                                                    ],
+                                                },
+                                            },
+                                            {
+                                                case: {
+                                                    $eq: [feature, "message"],
+                                                },
+                                                then: {
+                                                    $cond: [
+                                                        {
+                                                            $isArray:
+                                                                "$substrates.typefaces.messageFunction",
+                                                        },
+                                                        {
+                                                            $in: [
+                                                                subFeature,
+                                                                "$substrates.typefaces.messageFunction",
+                                                            ],
+                                                        },
+                                                        {
+                                                            $eq: [
+                                                                "$substrates.typefaces.messageFunction",
+                                                                subFeature,
+                                                            ],
+                                                        },
+                                                    ],
+                                                },
+                                            },
+                                            {
+                                                case: {
+                                                    $eq: [feature, "placement"],
+                                                },
+                                                then: {
+                                                    $eq: [
+                                                        "$substrates.placement",
+                                                        subFeature,
+                                                    ],
+                                                },
+                                            },
+                                            {
+                                                case: {
+                                                    $eq: [feature, "covid"],
+                                                },
+                                                then: {
+                                                    $cond: [
+                                                        {
+                                                            $eq: [
+                                                                subFeature,
+                                                                "COVID-Related",
+                                                            ],
+                                                        },
+                                                        "$substrates.typefaces.covidRelated",
+                                                        {
+                                                            $not: "$substrates.typefaces.covidRelated",
+                                                        },
+                                                    ],
+                                                },
+                                            },
+                                        ],
+                                        default: false,
+                                    },
+                                },
+                                1,
+                                0,
+                            ],
+                        },
+                    },
+                },
+            },
+            // Sort by municipality name
+            { $sort: { _id: 1 } },
+        ];
+
+        const result = await db
+            .collection("photos")
+            .aggregate(pipeline)
+            .toArray();
+
+        // Transform the result to match the expected format
+        const transformedData = result.reduce((acc, item) => {
+            acc[item._id] = {
+                total: item.total,
+                selected: item.selected,
+            };
+            return acc;
+        }, {});
+
+        res.json(transformedData);
+    } catch (error) {
+        console.error("Error getting map data:", error);
+        res.status(500).json({ message: "Error getting map data" });
+    }
+});
+
 // Start the server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

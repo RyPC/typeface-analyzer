@@ -18,12 +18,12 @@ import {
 import { LETTERING_ONTOLOGIES } from "./constants";
 import MapView from "./MapView";
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 export default function Dashboard({
     data,
-    setData,
     view,
     selectedMunicipality,
-    setMunicipalities,
     feature,
     subFeature,
 }) {
@@ -53,7 +53,7 @@ export default function Dashboard({
 
             setIsLoading(true);
             try {
-                const baseUrl = "http://localhost:3001";
+                const baseUrl = API_URL;
                 const muniParam =
                     selectedMunicipality === "All Municipalities"
                         ? ""
@@ -609,7 +609,6 @@ export default function Dashboard({
                 ) : (
                     <Box h="calc(100vh - 200px)">
                         <MapView
-                            data={data}
                             feature={feature}
                             subFeature={subFeature}
                             view={view}

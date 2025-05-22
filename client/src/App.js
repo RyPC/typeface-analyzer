@@ -134,12 +134,8 @@ export default function App() {
                     >
                         <Dashboard
                             data={data}
-                            setData={setData}
-                            processedData={processedData}
-                            setProcessedData={setProcessedData}
                             view={view}
                             selectedMunicipality={selectedMunicipality}
-                            setMunicipalities={setMunicipalities}
                             feature={selectedFeature}
                             subFeature={selectedSubFeature}
                         />
