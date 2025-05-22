@@ -8,24 +8,18 @@ import {
     Flex,
     useDisclosure,
     Text,
-    Icon,
-    Container,
-    useColorModeValue,
-    Image,
 } from "@chakra-ui/react";
 import Dashboard from "./Dashboard.js";
 import Sidebar from "./Sidebar.js";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AddModal from "./AddModal.js";
 import { SettingsIcon, InfoIcon } from "@chakra-ui/icons";
 
-import { LETTERING_ONTOLOGIES } from "./constants.js";
+const API_URL = process.env.REACT_APP_API_URL;
 
 export default function App() {
-    const [data, setData] = useState({});
-    const [processedData, setProcessedData] = useState({});
+    const [photoCount, setPhotoCount] = useState(0);
     const { isOpen, onOpen, onClose } = useDisclosure();
-    const [municipalities, setMunicipalities] = useState([]);
 
     const [view, setView] = useState("municipality"); // "municipality" or "map"
     const [selectedMunicipality, setSelectedMunicipality] =
@@ -33,10 +27,17 @@ export default function App() {
     const [selectedFeature, setSelectedFeature] = useState("typeface");
     const [selectedSubFeature, setSelectedSubFeature] = useState(null);
 
-    // Update processedData to display data for new municipality
-    const updateSelectedMunicipality = (muni) => {
-        setSelectedMunicipality(muni);
-    };
+    // Get count from database
+    useEffect(() => {
+        const fetchCount = async () => {
+            const url = `${API_URL}/api/stats/count`;
+            const response = await fetch(url);
+            const data = await response.json();
+            setPhotoCount(data.count);
+        };
+
+        fetchCount();
+    }, []);
 
     return (
         <Box
@@ -111,17 +112,16 @@ export default function App() {
                     overflow="hidden"
                 >
                     <Sidebar
-                        data={data}
                         onOpen={onOpen}
                         view={view}
                         setView={setView}
                         municipality={selectedMunicipality}
-                        updateMunicipality={updateSelectedMunicipality}
+                        setMunicipality={setSelectedMunicipality}
                         feature={selectedFeature}
                         setFeature={setSelectedFeature}
                         subFeature={selectedSubFeature}
                         setSubFeature={setSelectedSubFeature}
-                        processedData={processedData}
+                        photoCount={photoCount}
                     />
                     <Box
                         flex={1}
@@ -133,7 +133,6 @@ export default function App() {
                         boxShadow="inset 0 4px 12px rgba(0, 0, 0, 0.05)"
                     >
                         <Dashboard
-                            data={data}
                             view={view}
                             selectedMunicipality={selectedMunicipality}
                             feature={selectedFeature}
@@ -141,12 +140,7 @@ export default function App() {
                         />
                     </Box>
 
-                    <AddModal
-                        data={data}
-                        setData={setData}
-                        isOpen={isOpen}
-                        onClose={onClose}
-                    />
+                    <AddModal isOpen={isOpen} onClose={onClose} />
                 </HStack>
 
                 {/* Footer */}
@@ -155,9 +149,7 @@ export default function App() {
                         <Text fontSize="xs">
                             Typeface Analysis Dashboard © 2025
                         </Text>
-                        <Text fontSize="xs">
-                            {Object.keys(data).length} photos loaded
-                        </Text>
+                        <Text fontSize="xs">{photoCount} photos loaded</Text>
                     </Flex>
                 </Box>
             </VStack>

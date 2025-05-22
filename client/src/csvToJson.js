@@ -1,4 +1,5 @@
 import { Button, FormLabel, Input } from "@chakra-ui/react";
+import { DownloadIcon } from "@chakra-ui/icons";
 import Papa from "papaparse";
 
 export default function CsvToJsonConverter() {
@@ -197,7 +198,12 @@ export default function CsvToJsonConverter() {
                 hidden
             />
             <FormLabel htmlFor="csv_upload">
-                <Button as="span" colorScheme="blue" cursor="pointer">
+                <Button
+                    as="span"
+                    colorScheme="blue"
+                    cursor="pointer"
+                    leftIcon={<DownloadIcon />}
+                >
                     Convert CSV to JSON
                 </Button>
             </FormLabel>
