@@ -516,5 +516,90 @@ app.get("/api/map-data", async (req, res) => {
     }
 });
 
+// Route to get filter options
+app.get("/api/filter-options", async (req, res) => {
+    try {
+        const db = client.db("visualTextDB");
+
+        // Get unique municipalities
+        const municipalities = await db
+            .collection("photos")
+            .distinct("municipality");
+
+        // Get unique initials
+        const initials = await db.collection("photos").distinct("initials");
+
+        // Get unique statuses
+        const statuses = await db.collection("photos").distinct("status");
+
+        // Filter out null/undefined values and sort
+        const cleanAndSort = (arr) => arr.filter(Boolean).sort();
+
+        res.json({
+            municipalities: cleanAndSort(municipalities),
+            initials: cleanAndSort(initials),
+            statuses: cleanAndSort(statuses),
+        });
+    } catch (error) {
+        console.error("Error getting filter options:", error);
+        res.status(500).json({ message: "Error getting filter options" });
+    }
+});
+
+// Route to get paginated data for table view
+app.get("/api/table-data", async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        const sortOrder = req.query.sortOrder === "desc" ? -1 : 1;
+        const filterType = req.query.filterType;
+        const filterValue = req.query.filterValue;
+
+        const db = client.db("visualTextDB");
+
+        // Build filter query
+        let query = {};
+        if (filterType && filterValue) {
+            switch (filterType) {
+                case "municipality":
+                    query.municipality = filterValue;
+                    break;
+                case "initials":
+                    query.initials = filterValue;
+                    break;
+                case "status":
+                    query.status = filterValue;
+                    break;
+            }
+        }
+
+        // Get total count for pagination
+        const totalCount = await db.collection("photos").countDocuments(query);
+
+        // Get paginated data with sorting
+        const data = await db
+            .collection("photos")
+            .find(query)
+            .sort({ lastUpdated: sortOrder })
+            .skip(skip)
+            .limit(limit)
+            .toArray();
+
+        res.json({
+            data,
+            pagination: {
+                total: totalCount,
+                page,
+                limit,
+                totalPages: Math.ceil(totalCount / limit),
+            },
+        });
+    } catch (error) {
+        console.error("Error getting table data:", error);
+        res.status(500).json({ message: "Error getting table data" });
+    }
+});
+
 // Start the server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

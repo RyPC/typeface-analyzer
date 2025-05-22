@@ -4,7 +4,6 @@ import {
     Button,
     Checkbox,
     CheckboxGroup,
-    Flex,
     FormControl,
     FormLabel,
     HStack,
@@ -18,7 +17,6 @@ import {
     ModalHeader,
     ModalOverlay,
     Select,
-    Text,
     Textarea,
     VStack,
     Alert,
@@ -36,7 +34,7 @@ import {
     MESSAGE_FUNCTIONS,
 } from "./constants";
 
-export default function AddModal({ data, setData, isOpen, onClose }) {
+export default function AddModal({ isOpen, onClose }) {
     const [photo, setPhoto] = useState(null);
     const [photoPreview, setPhotoPreview] = useState(null);
     const [loading, setLoading] = useState(false);
