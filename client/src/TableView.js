@@ -1,0 +1,280 @@
+import React, { useState, useEffect } from "react";
+import {
+    Box,
+    Table,
+    Thead,
+    Tbody,
+    Tr,
+    Th,
+    Td,
+    Button,
+    Flex,
+    Text,
+    Spinner,
+    useToast,
+    Select,
+    HStack,
+    useDisclosure,
+} from "@chakra-ui/react";
+import {
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    TriangleUpIcon,
+    TriangleDownIcon,
+} from "@chakra-ui/icons";
+import PhotoDetailsModal from "./PhotoDetailsModal";
+
+const API_URL = process.env.REACT_APP_API_URL;
+
+const FILTER_TYPES = [
+    { value: "status", label: "Status" },
+    { value: "municipality", label: "Municipality" },
+    { value: "initials", label: "Initials" },
+];
+
+export default function TableView() {
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const [sortOrder, setSortOrder] = useState("desc");
+    const [filterType, setFilterType] = useState("");
+    const [filterValue, setFilterValue] = useState("");
+    const [selectedPhoto, setSelectedPhoto] = useState(null);
+    const { isOpen, onOpen, onClose } = useDisclosure();
+    const [filterOptions, setFilterOptions] = useState({
+        municipalities: [],
+        initials: [],
+        statuses: [],
+    });
+    const toast = useToast();
+
+    // Fetch filter options
+    useEffect(() => {
+        const fetchFilterOptions = async () => {
+            try {
+                const response = await fetch(`${API_URL}/api/filter-options`);
+                if (!response.ok)
+                    throw new Error("Failed to fetch filter options");
+                const options = await response.json();
+                setFilterOptions(options);
+            } catch (error) {
+                toast({
+                    title: "Error",
+                    description: "Failed to fetch filter options",
+                    status: "error",
+                    duration: 3000,
+                    isClosable: true,
+                });
+            }
+        };
+
+        fetchFilterOptions();
+    }, []);
+
+    const fetchData = async (page) => {
+        try {
+            setLoading(true);
+            const queryParams = new URLSearchParams({
+                page,
+                limit: 10,
+                sortOrder,
+                ...(filterType && filterValue && { filterType, filterValue }),
+            });
+
+            const response = await fetch(
+                `${API_URL}/api/table-data?${queryParams}`
+            );
+            if (!response.ok) throw new Error("Failed to fetch data");
+
+            const result = await response.json();
+            setData(result.data);
+            setTotalPages(result.pagination.totalPages);
+            setTotalCount(result.pagination.total);
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "Failed to fetch data",
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData(currentPage);
+    }, [currentPage, sortOrder, filterType, filterValue]);
+
+    const handlePreviousPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        }
+    };
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(currentPage + 1);
+        }
+    };
+
+    const toggleSortOrder = () => {
+        setSortOrder(sortOrder === "desc" ? "asc" : "desc");
+    };
+
+    const handleFilterTypeChange = (e) => {
+        setFilterType(e.target.value);
+        setFilterValue("");
+        setCurrentPage(1);
+    };
+
+    const handleFilterValueChange = (e) => {
+        setFilterValue(e.target.value);
+        setCurrentPage(1);
+    };
+
+    const getFilterOptions = () => {
+        switch (filterType) {
+            case "municipality":
+                return filterOptions.municipalities;
+            case "initials":
+                return filterOptions.initials;
+            case "status":
+                return filterOptions.statuses;
+            default:
+                return [];
+        }
+    };
+
+    const handleRowClick = (photo) => {
+        setSelectedPhoto(photo);
+        onOpen();
+    };
+
+    if (loading) {
+        return (
+            <Flex justify="center" align="center" h="100vh">
+                <Spinner size="xl" />
+            </Flex>
+        );
+    }
+
+    return (
+        <Box p={4}>
+            <Flex justify="space-between" align="center" mb={4}>
+                <Text fontSize="2xl">Photo Table View</Text>
+                <Text fontSize="md" color="gray.600">
+                    {totalCount} {totalCount === 1 ? "photo" : "photos"} found
+                    {filterType &&
+                        filterValue &&
+                        ` with ${filterType} "${filterValue}"`}
+                </Text>
+            </Flex>
+
+            <HStack spacing={4} mb={4}>
+                <Select
+                    placeholder="Filter by"
+                    value={filterType}
+                    onChange={handleFilterTypeChange}
+                    width="200px"
+                >
+                    {FILTER_TYPES.map((type) => (
+                        <option key={type.value} value={type.value}>
+                            {type.label}
+                        </option>
+                    ))}
+                </Select>
+                {filterType && (
+                    <Select
+                        placeholder="Select value"
+                        value={filterValue}
+                        onChange={handleFilterValueChange}
+                        width="200px"
+                    >
+                        {getFilterOptions().map((value) => (
+                            <option key={value} value={value}>
+                                {value}
+                            </option>
+                        ))}
+                    </Select>
+                )}
+            </HStack>
+
+            <Box overflowX="auto">
+                <Table variant="simple">
+                    <Thead>
+                        <Tr>
+                            <Th>Status</Th>
+                            <Th>Municipality</Th>
+                            <Th>Initials</Th>
+                            <Th>
+                                <Flex
+                                    align="center"
+                                    cursor="pointer"
+                                    onClick={toggleSortOrder}
+                                >
+                                    Last Updated
+                                    {sortOrder === "desc" ? (
+                                        <TriangleDownIcon ml={2} />
+                                    ) : (
+                                        <TriangleUpIcon ml={2} />
+                                    )}
+                                </Flex>
+                            </Th>
+                            <Th>ID</Th>
+                        </Tr>
+                    </Thead>
+                    <Tbody>
+                        {data.map((item) => (
+                            <Tr
+                                key={item.custom_id}
+                                onClick={() => handleRowClick(item)}
+                                cursor="pointer"
+                                _hover={{ bg: "gray.50" }}
+                            >
+                                <Td>{item.status || "Active"}</Td>
+                                <Td>{item.municipality}</Td>
+                                <Td>{item.initials || "-"}</Td>
+                                <Td>
+                                    {new Date(
+                                        item.lastUpdated
+                                    ).toLocaleDateString()}
+                                </Td>
+                                <Td>{item.custom_id}</Td>
+                            </Tr>
+                        ))}
+                    </Tbody>
+                </Table>
+            </Box>
+
+            <Flex justify="center" align="center" mt={4} gap={4}>
+                <Button
+                    leftIcon={<ChevronLeftIcon />}
+                    onClick={handlePreviousPage}
+                    isDisabled={currentPage === 1}
+                >
+                    Previous
+                </Button>
+                <Text>
+                    Page {currentPage} of {totalPages}
+                </Text>
+                <Button
+                    rightIcon={<ChevronRightIcon />}
+                    onClick={handleNextPage}
+                    isDisabled={currentPage === totalPages}
+                >
+                    Next
+                </Button>
+            </Flex>
+
+            <PhotoDetailsModal
+                isOpen={isOpen}
+                onClose={onClose}
+                photo={selectedPhoto}
+            />
+        </Box>
+    );
+}

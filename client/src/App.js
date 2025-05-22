@@ -11,6 +11,7 @@ import {
 } from "@chakra-ui/react";
 import Dashboard from "./Dashboard.js";
 import Sidebar from "./Sidebar.js";
+import TableView from "./TableView.js";
 import { useEffect, useState } from "react";
 import AddModal from "./AddModal.js";
 import { SettingsIcon, InfoIcon } from "@chakra-ui/icons";
@@ -132,12 +133,16 @@ export default function App() {
                         backdropFilter="blur(10px)"
                         boxShadow="inset 0 4px 12px rgba(0, 0, 0, 0.05)"
                     >
-                        <Dashboard
-                            view={view}
-                            selectedMunicipality={selectedMunicipality}
-                            feature={selectedFeature}
-                            subFeature={selectedSubFeature}
-                        />
+                        {view === "table" ? (
+                            <TableView />
+                        ) : (
+                            <Dashboard
+                                view={view}
+                                selectedMunicipality={selectedMunicipality}
+                                feature={selectedFeature}
+                                subFeature={selectedSubFeature}
+                            />
+                        )}
                     </Box>
 
                     <AddModal isOpen={isOpen} onClose={onClose} />
