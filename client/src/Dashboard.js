@@ -21,7 +21,6 @@ import MapView from "./MapView";
 const API_URL = process.env.REACT_APP_API_URL;
 
 export default function Dashboard({
-    data,
     view,
     selectedMunicipality,
     feature,

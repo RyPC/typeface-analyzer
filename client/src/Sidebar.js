@@ -9,12 +9,7 @@ import {
     Text,
     VStack,
 } from "@chakra-ui/react";
-import {
-    DownloadIcon,
-    AddIcon,
-    ChevronLeftIcon,
-    ChevronRightIcon,
-} from "@chakra-ui/icons";
+import { AddIcon, ChevronLeftIcon, ChevronRightIcon } from "@chakra-ui/icons";
 
 import { useState, useEffect } from "react";
 import CsvToJsonConverter from "./csvToJson";
@@ -28,17 +23,16 @@ import {
 const API_URL = process.env.REACT_APP_API_URL;
 
 export default function Sidebar({
-    data,
     onOpen,
     view,
     setView,
     municipality,
-    updateMunicipality,
+    setMunicipality,
     feature,
     setFeature,
     subFeature,
     setSubFeature,
-    processedData,
+    photoCount,
 }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [municipalities, setMunicipalities] = useState([]);
@@ -54,7 +48,7 @@ export default function Sidebar({
                 }
                 const data = await response.json();
                 setMunicipalities(data);
-                updateMunicipality("All Municipalities");
+                setMunicipality("All Municipalities");
             } catch (error) {
                 console.error("Error fetching municipalities:", error);
             }
@@ -102,8 +96,8 @@ export default function Sidebar({
                 {!isCollapsed && (
                     <VStack spacing={6} align="stretch" flex={1} px={3}>
                         <Text fontSize="sm" color="whiteAlpha.700">
-                            {Object.keys(data).length > 0
-                                ? `${Object.keys(data).length} photos loaded`
+                            {photoCount > 0
+                                ? `${photoCount} photos loaded`
                                 : "No photos loaded"}
                         </Text>
 
@@ -147,7 +141,7 @@ export default function Sidebar({
                                         bg="gray.700"
                                         value={municipality}
                                         onChange={(e) =>
-                                            updateMunicipality(e.target.value)
+                                            setMunicipality(e.target.value)
                                         }
                                     >
                                         <option value="All Municipalities">
@@ -264,7 +258,7 @@ export default function Sidebar({
                         <>
                             <Button
                                 onClick={onOpen}
-                                disabled={Object.keys(data).length <= 0}
+                                disabled={photoCount <= 0}
                                 p={0}
                                 minW="40px"
                                 h="40px"
@@ -291,7 +285,7 @@ export default function Sidebar({
 
                             <Button
                                 onClick={onOpen}
-                                disabled={Object.keys(data).length <= 0}
+                                disabled={photoCount <= 0}
                                 colorScheme="teal"
                                 leftIcon={<AddIcon />}
                                 w="full"

@@ -305,6 +305,20 @@ app.get(["/api/stats/covid", "/api/stats/covid/:muni"], async (req, res) => {
     }
 });
 
+// Route to get total document count
+app.get("/api/stats/count", async (req, res) => {
+    try {
+        const db = client.db("visualTextDB");
+        const count = await db.collection("photos").countDocuments();
+        res.json({ count });
+    } catch (error) {
+        console.error("Error getting document count:", error);
+        res.status(500).json({
+            message: "Error getting document count",
+        });
+    }
+});
+
 // Route to get all unique municipalities
 app.get("/api/municipalities", async (req, res) => {
     try {
