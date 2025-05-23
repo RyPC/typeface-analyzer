@@ -3,6 +3,8 @@ const cors = require("cors");
 const fs = require("fs").promises;
 const path = require("path");
 const { MongoClient } = require("mongodb");
+const { Readable } = require("stream");
+const multer = require("multer");
 require("dotenv").config();
 
 const app = express();
@@ -12,9 +14,13 @@ const PORT = process.env.PORT || 3001;
 const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri);
 
+// Configure multer for memory storage
+const upload = multer({ storage: multer.memoryStorage() });
+
 // Middleware
 app.use(cors());
-app.use(express.json()); // Parse JSON request bodies
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Connect to MongoDB
 async function connectToMongo() {
@@ -598,6 +604,132 @@ app.get("/api/table-data", async (req, res) => {
     } catch (error) {
         console.error("Error getting table data:", error);
         res.status(500).json({ message: "Error getting table data" });
+    }
+});
+
+// Route to handle batch import of JSONL files
+app.post("/api/batch-import", upload.single("file"), async (req, res) => {
+    try {
+        const db = client.db("visualTextDB");
+        const collection = db.collection("photos");
+
+        if (!req.file) {
+            return res.status(400).json({ message: "No file uploaded" });
+        }
+
+        // Create a readable stream from the file buffer
+        const stream = Readable.from(
+            req.file.buffer
+                .toString()
+                .split("\n")
+                .filter((line) => line.trim())
+        );
+
+        // Process each line
+        const results = [];
+        let processedCount = 0;
+        const batchSize = 100; // Process in batches of 100
+
+        for await (const line of stream) {
+            let rawData;
+            try {
+                rawData = JSON.parse(line);
+
+                // Check if document with this custom_id already exists (case insensitive)
+                const existingDoc = await collection.findOne({
+                    custom_id: {
+                        $regex: new RegExp(`^${rawData.custom_id}$`, "i"),
+                    },
+                });
+                if (existingDoc) {
+                    results.push({
+                        success: false,
+                        error: `Document with custom_id ${rawData.custom_id} already exists (case insensitive match)`,
+                        custom_id: rawData.custom_id,
+                    });
+                    continue;
+                }
+
+                // Extract the content between ||| markers
+                const contentMatch =
+                    rawData.response.body.choices[0].message.content.match(
+                        /\|\|\|(.*?)\|\|\|/s
+                    );
+                if (!contentMatch) {
+                    throw new Error(
+                        "Could not find content between ||| markers"
+                    );
+                }
+
+                // Parse the content as JSON
+                const parsedData = JSON.parse(contentMatch[1]);
+
+                // Create the document to insert
+                const document = {
+                    custom_id: rawData.custom_id,
+                    lastUpdated: new Date().toISOString(),
+                    status: "needs review",
+                    municipality: "", // This will need to be set manually
+                    substrates: parsedData.substrates.map((substrate) => ({
+                        placement: substrate.placement,
+                        additionalNotes: substrate.additionalNotes,
+                        thisIsntReallyASign: substrate.thisIsntReallyASign,
+                        notASignDescription: substrate.notASignDescription,
+                        typefaces: substrate.typefaces.map((typeface) => ({
+                            typefaceStyle: typeface.typefaceStyle,
+                            copy: typeface.copy,
+                            letteringOntology: typeface.letteringOntology,
+                            messageFunction: typeface.messageFunction,
+                            covidRelated: typeface.covidRelated,
+                            additionalNotes: typeface.additionalNotes,
+                        })),
+                        confidence: substrate.confidence,
+                        confidenceReasoning: substrate.confidenceReasoning,
+                        additionalInfo: substrate.additionalInfo,
+                    })),
+                };
+
+                // Insert the document
+                const result = await collection.insertOne(document);
+                results.push({
+                    success: true,
+                    id: result.insertedId,
+                    custom_id: rawData.custom_id,
+                });
+
+                processedCount++;
+
+                // Send progress updates every batchSize items
+                if (processedCount % batchSize === 0) {
+                    res.write(
+                        JSON.stringify({
+                            type: "progress",
+                            processed: processedCount,
+                            results: results.slice(-batchSize),
+                        }) + "\n"
+                    );
+                }
+            } catch (error) {
+                results.push({
+                    success: false,
+                    error: error.message,
+                    custom_id: rawData?.custom_id || "unknown",
+                });
+            }
+        }
+
+        // Send final results
+        res.write(
+            JSON.stringify({
+                type: "complete",
+                message: "Batch import completed",
+                results: results,
+            })
+        );
+        res.end();
+    } catch (error) {
+        console.error("Error processing batch import:", error);
+        res.status(500).json({ message: "Error processing batch import" });
     }
 });
 

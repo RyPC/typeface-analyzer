@@ -9,10 +9,9 @@ import {
     Text,
     VStack,
 } from "@chakra-ui/react";
-import { AddIcon, ChevronLeftIcon, ChevronRightIcon } from "@chakra-ui/icons";
+import { ChevronLeftIcon, ChevronRightIcon } from "@chakra-ui/icons";
 
 import { useState, useEffect } from "react";
-import CsvToJsonConverter from "./csvToJson";
 import {
     TYPEFACE_STYLES,
     LETTERING_ONTOLOGIES,
@@ -265,18 +264,6 @@ export default function Sidebar({
                     {isCollapsed ? (
                         <>
                             <Button
-                                onClick={onOpen}
-                                disabled={photoCount <= 0}
-                                p={0}
-                                minW="40px"
-                                h="40px"
-                                borderRadius="full"
-                                aria-label="New Photo"
-                            >
-                                <AddIcon boxSize={5} />
-                            </Button>
-
-                            <Button
                                 onClick={toggleCollapse}
                                 p={0}
                                 minW="40px"
@@ -289,20 +276,6 @@ export default function Sidebar({
                         </>
                     ) : (
                         <>
-                            <CsvToJsonConverter />
-
-                            <Button
-                                onClick={onOpen}
-                                disabled={photoCount <= 0}
-                                colorScheme="teal"
-                                leftIcon={<AddIcon />}
-                                w="full"
-                                variant="solid"
-                                _hover={{ bg: "teal.500" }}
-                            >
-                                New Photo
-                            </Button>
-
                             <Button
                                 leftIcon={<ChevronLeftIcon />}
                                 variant="outline"
