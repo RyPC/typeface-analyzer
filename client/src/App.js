@@ -134,7 +134,7 @@ export default function App() {
                         boxShadow="inset 0 4px 12px rgba(0, 0, 0, 0.05)"
                     >
                         {view === "table" ? (
-                            <TableView />
+                            <TableView onOpen={onOpen} />
                         ) : (
                             <Dashboard
                                 view={view}
