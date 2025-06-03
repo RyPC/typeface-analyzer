@@ -2,9 +2,10 @@ const express = require("express");
 const cors = require("cors");
 const fs = require("fs").promises;
 const path = require("path");
-const { MongoClient } = require("mongodb");
+const mongoose = require("mongoose");
 const { Readable } = require("stream");
 const multer = require("multer");
+const Photo = require("./models/Photo");
 require("dotenv").config();
 
 const app = express();
@@ -12,7 +13,6 @@ const PORT = process.env.PORT || 3001;
 
 // MongoDB connection URI
 const uri = process.env.MONGODB_URI;
-const client = new MongoClient(uri);
 
 // Configure multer for memory storage
 const upload = multer({ storage: multer.memoryStorage() });
@@ -22,11 +22,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Connect to MongoDB
+// Connect to MongoDB using Mongoose
 async function connectToMongo() {
     try {
-        await client.connect();
-        console.log("Connected to MongoDB");
+        await mongoose.connect(uri, {
+            dbName: "visualTextDB", // Explicitly specify the database name
+        });
+        console.log("Connected to MongoDB - visualTextDB");
     } catch (error) {
         console.error("MongoDB connection error:", error);
     }
@@ -107,7 +109,7 @@ app.get(
     ["/api/stats/typeface", "/api/stats/typeface/:muni"],
     async (req, res) => {
         try {
-            const db = client.db("visualTextDB");
+            const db = mongoose.connection.db;
             const pipeline = [
                 // Match by municipality if provided
                 ...(req.params.muni
@@ -149,7 +151,7 @@ app.get(
     ["/api/stats/lettering-ontology", "/api/stats/lettering-ontology/:muni"],
     async (req, res) => {
         try {
-            const db = client.db("visualTextDB");
+            const db = mongoose.connection.db;
             const pipeline = [
                 // Match by municipality if provided
                 ...(req.params.muni
@@ -200,7 +202,7 @@ app.get(
     ["/api/stats/message-function", "/api/stats/message-function/:muni"],
     async (req, res) => {
         try {
-            const db = client.db("visualTextDB");
+            const db = mongoose.connection.db;
             const pipeline = [
                 // Match by municipality if provided
                 ...(req.params.muni
@@ -248,7 +250,7 @@ app.get(
     ["/api/stats/placement", "/api/stats/placement/:muni"],
     async (req, res) => {
         try {
-            const db = client.db("visualTextDB");
+            const db = mongoose.connection.db;
             const pipeline = [
                 // Match by municipality if provided
                 ...(req.params.muni
@@ -281,7 +283,7 @@ app.get(
 // Route to get COVID-related statistics
 app.get(["/api/stats/covid", "/api/stats/covid/:muni"], async (req, res) => {
     try {
-        const db = client.db("visualTextDB");
+        const db = mongoose.connection.db;
         const pipeline = [
             // Match by municipality if provided
             ...(req.params.muni
@@ -314,7 +316,7 @@ app.get(["/api/stats/covid", "/api/stats/covid/:muni"], async (req, res) => {
 // Route to get total document count
 app.get("/api/stats/count", async (req, res) => {
     try {
-        const db = client.db("visualTextDB");
+        const db = mongoose.connection.db;
         const count = await db.collection("photos").countDocuments();
         res.json({ count });
     } catch (error) {
@@ -328,7 +330,7 @@ app.get("/api/stats/count", async (req, res) => {
 // Route to get all unique municipalities
 app.get("/api/municipalities", async (req, res) => {
     try {
-        const db = client.db("visualTextDB");
+        const db = mongoose.connection.db;
         const pipeline = [
             // Group by municipality and get unique values
             {
@@ -363,7 +365,7 @@ app.get("/api/municipalities", async (req, res) => {
 app.get("/api/map-data", async (req, res) => {
     try {
         const { feature, subFeature } = req.query;
-        const db = client.db("visualTextDB");
+        const db = mongoose.connection.db;
 
         let pipeline = [
             // Unwind the substrates array
@@ -525,18 +527,14 @@ app.get("/api/map-data", async (req, res) => {
 // Route to get filter options
 app.get("/api/filter-options", async (req, res) => {
     try {
-        const db = client.db("visualTextDB");
-
         // Get unique municipalities
-        const municipalities = await db
-            .collection("photos")
-            .distinct("municipality");
+        const municipalities = await Photo.distinct("municipality");
 
         // Get unique initials
-        const initials = await db.collection("photos").distinct("initials");
+        const initials = await Photo.distinct("initials");
 
         // Get unique statuses
-        const statuses = await db.collection("photos").distinct("status");
+        const statuses = await Photo.distinct("status");
 
         // Filter out null/undefined values and sort
         const cleanAndSort = (arr) => arr.filter(Boolean).sort();
@@ -562,35 +560,21 @@ app.get("/api/table-data", async (req, res) => {
         const filterType = req.query.filterType;
         const filterValue = req.query.filterValue;
 
-        const db = client.db("visualTextDB");
-
         // Build filter query
         let query = {};
         if (filterType && filterValue) {
-            switch (filterType) {
-                case "municipality":
-                    query.municipality = filterValue;
-                    break;
-                case "initials":
-                    query.initials = filterValue;
-                    break;
-                case "status":
-                    query.status = filterValue;
-                    break;
-            }
+            query[filterType] = filterValue;
         }
 
         // Get total count for pagination
-        const totalCount = await db.collection("photos").countDocuments(query);
+        const totalCount = await Photo.countDocuments(query);
 
         // Get paginated data with sorting
-        const data = await db
-            .collection("photos")
-            .find(query)
+        const data = await Photo.find(query)
             .sort({ lastUpdated: sortOrder })
             .skip(skip)
             .limit(limit)
-            .toArray();
+            .lean();
 
         res.json({
             data,
@@ -610,9 +594,6 @@ app.get("/api/table-data", async (req, res) => {
 // Route to handle batch import of JSONL files
 app.post("/api/batch-import", upload.single("file"), async (req, res) => {
     try {
-        const db = client.db("visualTextDB");
-        const collection = db.collection("photos");
-
         if (!req.file) {
             return res.status(400).json({ message: "No file uploaded" });
         }
@@ -636,7 +617,7 @@ app.post("/api/batch-import", upload.single("file"), async (req, res) => {
                 rawData = JSON.parse(line);
 
                 // Check if document with this custom_id already exists (case insensitive)
-                const existingDoc = await collection.findOne({
+                const existingDoc = await Photo.findOne({
                     custom_id: {
                         $regex: new RegExp(`^${rawData.custom_id}$`, "i"),
                     },
@@ -665,9 +646,9 @@ app.post("/api/batch-import", upload.single("file"), async (req, res) => {
                 const parsedData = JSON.parse(contentMatch[1]);
 
                 // Create the document to insert
-                const document = {
+                const photo = new Photo({
                     custom_id: rawData.custom_id,
-                    lastUpdated: new Date().toISOString(),
+                    lastUpdated: new Date(),
                     status: "needs review",
                     municipality: "", // This will need to be set manually
                     substrates: parsedData.substrates.map((substrate) => ({
@@ -687,13 +668,13 @@ app.post("/api/batch-import", upload.single("file"), async (req, res) => {
                         confidenceReasoning: substrate.confidenceReasoning,
                         additionalInfo: substrate.additionalInfo,
                     })),
-                };
+                });
 
-                // Insert the document
-                const result = await collection.insertOne(document);
+                // Save the document
+                await photo.save();
                 results.push({
                     success: true,
-                    id: result.insertedId,
+                    id: photo._id,
                     custom_id: rawData.custom_id,
                 });
 
