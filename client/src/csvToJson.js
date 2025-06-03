@@ -64,7 +64,7 @@ export default function CsvToJsonConverter() {
                         } else if (key === "Photo name") {
                             photo["custom_id"] = value;
                         } else if (key === "Number of substrates") {
-                            photo["substrateCount"] = value;
+                            photo["substrateCount"] = parseInt(value);
                             photo["substrates"] = [];
                         } else if (key === "Photo link") {
                             photo["photoLink"] = value;
@@ -90,7 +90,8 @@ export default function CsvToJsonConverter() {
                             /^This isn't really a sign/.test(key) &&
                             currentSubstrate
                         ) {
-                            currentSubstrate["thisIsntReallyASign"] = value;
+                            currentSubstrate["thisIsntReallyASign"] =
+                                value === "true" ? true : false;
                         } else if (
                             /^What is is?/.test(key) &&
                             currentSubstrate
@@ -159,7 +160,7 @@ export default function CsvToJsonConverter() {
                                 );
                                 currentTypeface = null;
                             }
-                            currentSubstrate["confidence"] = value;
+                            currentSubstrate["confidence"] = parseInt(value);
                         } else if (
                             /^Explain your reasoning/.test(key) &&
                             currentSubstrate

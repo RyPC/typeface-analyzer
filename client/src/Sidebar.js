@@ -10,6 +10,7 @@ import {
     VStack,
 } from "@chakra-ui/react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@chakra-ui/icons";
+import CsvToJsonConverter from "./csvToJson";
 
 import { useState, useEffect } from "react";
 import {
@@ -257,6 +258,13 @@ export default function Sidebar({
                                 </Box>
                             </VStack>
                         )}
+
+                        <Box mt={6}>
+                            <Heading as="h3" size="md" mb={2}>
+                                Data Tools
+                            </Heading>
+                            <CsvToJsonConverter />
+                        </Box>
                     </VStack>
                 )}
 
