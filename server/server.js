@@ -6,6 +6,9 @@ const mongoose = require("mongoose");
 const { Readable } = require("stream");
 const multer = require("multer");
 const Photo = require("./models/Photo");
+const User = require("./models/User");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 const app = express();
@@ -26,7 +29,7 @@ app.use(express.urlencoded({ extended: true }));
 async function connectToMongo() {
     try {
         await mongoose.connect(uri, {
-            dbName: "visualTextDB", // Explicitly specify the database name
+            dbName: "visualTextDB",
         });
         console.log("Connected to MongoDB - visualTextDB");
     } catch (error) {
@@ -35,6 +38,23 @@ async function connectToMongo() {
 }
 
 connectToMongo();
+
+// Middleware to verify JWT token
+const verifyToken = (req, res, next) => {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+        return res.status(401).json({ message: "No token provided" });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.userId = decoded.userId;
+        next();
+    } catch (error) {
+        return res.status(401).json({ message: "Invalid token" });
+    }
+};
 
 // Route to get next photo from batch data
 app.get("/api/batch/next", async (req, res) => {
@@ -712,6 +732,116 @@ app.post("/api/batch-import", upload.single("file"), async (req, res) => {
         console.error("Error processing batch import:", error);
         res.status(500).json({ message: "Error processing batch import" });
     }
+});
+
+// Route to handle registration
+app.post("/api/auth/register", async (req, res) => {
+    try {
+        const { username, password, firstName, lastName, initials } = req.body;
+
+        // Check if username already exists
+        const existingUser = await User.findOne({ username });
+        if (existingUser) {
+            return res.status(400).json({ message: "Username already exists" });
+        }
+
+        // Hash password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // Create new user
+        const user = new User({
+            username,
+            password: hashedPassword,
+            firstName,
+            lastName,
+            initials,
+        });
+
+        await user.save();
+
+        res.status(201).json({ message: "User registered successfully" });
+    } catch (error) {
+        console.error("Registration error:", error);
+        res.status(500).json({ message: "Error registering user" });
+    }
+});
+
+// Route to handle login
+app.post("/api/auth/login", async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        // Find user
+        const user = await User.findOne({ username });
+        if (!user) {
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
+
+        // Check password
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
+
+        // Create JWT token
+        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+            expiresIn: "24h",
+        });
+
+        // Return user info (excluding password) and token
+        const userInfo = {
+            id: user._id,
+            username: user.username,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            initials: user.initials,
+        };
+
+        res.json({
+            token,
+            user: userInfo,
+        });
+    } catch (error) {
+        console.error("Login error:", error);
+        res.status(500).json({ message: "Error during login" });
+    }
+});
+
+// Route to handle logout
+app.post("/api/auth/logout", verifyToken, async (req, res) => {
+    try {
+        // In a more complex system, you might want to:
+        // 1. Add the token to a blacklist
+        // 2. Clear any server-side sessions
+        // 3. Update user's last logout time
+
+        res.json({ message: "Logged out successfully" });
+    } catch (error) {
+        console.error("Logout error:", error);
+        res.status(500).json({ message: "Error during logout" });
+    }
+});
+
+// Route to verify token
+app.get("/api/auth/verify", verifyToken, async (req, res) => {
+    try {
+        // If verifyToken middleware passed, the token is valid
+        // We can optionally return the user data here
+        const user = await User.findById(req.userId).select("-password");
+        if (!user) {
+            return res.status(401).json({ message: "User not found" });
+        }
+        res.json({ valid: true, user });
+    } catch (error) {
+        console.error("Token verification error:", error);
+        res.status(401).json({ message: "Invalid token" });
+    }
+});
+
+// Example of a protected route using the verifyToken middleware
+app.get("/api/protected-route", verifyToken, (req, res) => {
+    res.json({ message: "This is a protected route", userId: req.userId });
 });
 
 // Start the server

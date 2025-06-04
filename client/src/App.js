@@ -8,17 +8,30 @@ import {
     Flex,
     useDisclosure,
     Text,
+    Avatar,
+    Menu,
+    MenuButton,
+    MenuList,
+    MenuItem,
+    MenuDivider,
+    Spinner,
+    Center,
 } from "@chakra-ui/react";
 import Dashboard from "./Dashboard.js";
 import Sidebar from "./Sidebar.js";
 import TableView from "./TableView.js";
 import { useEffect, useState } from "react";
 import AddModal from "./AddModal.js";
-import { SettingsIcon, InfoIcon } from "@chakra-ui/icons";
+import { SettingsIcon, InfoIcon, ChevronDownIcon } from "@chakra-ui/icons";
+import Login from "./Login.js";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
 export default function App() {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [token, setToken] = useState(null);
+    const [user, setUser] = useState(null);
     const [photoCount, setPhotoCount] = useState(0);
     const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -28,17 +41,126 @@ export default function App() {
     const [selectedFeature, setSelectedFeature] = useState("typeface");
     const [selectedSubFeature, setSelectedSubFeature] = useState(null);
 
+    useEffect(() => {
+        const validateSession = async () => {
+            const storedToken = localStorage.getItem("token");
+            const storedUser = localStorage.getItem("user");
+
+            if (!storedToken || !storedUser) {
+                setIsLoading(false);
+                return;
+            }
+
+            try {
+                // Try to make an authenticated request to verify the token
+                const response = await fetch(`${API_URL}/api/auth/verify`, {
+                    headers: {
+                        Authorization: `Bearer ${storedToken}`,
+                    },
+                });
+
+                if (response.ok) {
+                    setToken(storedToken);
+                    setUser(JSON.parse(storedUser));
+                    setIsAuthenticated(true);
+                } else {
+                    // If token is invalid, clear everything
+                    localStorage.removeItem("token");
+                    localStorage.removeItem("user");
+                }
+            } catch (error) {
+                // If server is not available, clear everything
+                console.error("Session validation error:", error);
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        validateSession();
+    }, []);
+
     // Get count from database
     useEffect(() => {
         const fetchCount = async () => {
-            const url = `${API_URL}/api/stats/count`;
-            const response = await fetch(url);
-            const data = await response.json();
-            setPhotoCount(data.count);
+            if (!isAuthenticated) return;
+
+            try {
+                const url = `${API_URL}/api/stats/count`;
+                const response = await fetch(url, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                const data = await response.json();
+                setPhotoCount(data.count);
+            } catch (error) {
+                console.error("Error fetching count:", error);
+            }
         };
 
         fetchCount();
-    }, []);
+    }, [isAuthenticated, token]);
+
+    const handleLogin = (newToken, userData) => {
+        setToken(newToken);
+        setUser(userData);
+        setIsAuthenticated(true);
+        localStorage.setItem("token", newToken);
+        localStorage.setItem("user", JSON.stringify(userData));
+    };
+
+    const handleLogout = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            if (token) {
+                await fetch(`${API_URL}/api/auth/logout`, {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+            }
+        } catch (error) {
+            console.error("Logout error:", error);
+        } finally {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            setToken(null);
+            setUser(null);
+            setIsAuthenticated(false);
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <Box
+                h="100vh"
+                bgGradient="linear(to-b, #A5B2CE, #8D9BB8)"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+            >
+                <Center>
+                    <VStack spacing={4}>
+                        <Spinner
+                            thickness="4px"
+                            speed="0.65s"
+                            emptyColor="gray.200"
+                            color="#000C5C"
+                            size="xl"
+                        />
+                        <Text color="#000C5C">Loading...</Text>
+                    </VStack>
+                </Center>
+            </Box>
+        );
+    }
+
+    if (!isAuthenticated) {
+        return <Login onLogin={handleLogin} />;
+    }
 
     return (
         <Box
@@ -85,7 +207,7 @@ export default function App() {
                             </Heading>
                         </Flex>
 
-                        <Flex>
+                        <Flex alignItems="center">
                             <Button
                                 variant="ghost"
                                 mr={2}
@@ -96,11 +218,39 @@ export default function App() {
                             </Button>
                             <Button
                                 variant="ghost"
+                                mr={2}
                                 color="#000C5C"
                                 _hover={{ bg: "blackAlpha.100" }}
                             >
                                 <SettingsIcon />
                             </Button>
+                            <Menu>
+                                <MenuButton
+                                    as={Button}
+                                    rightIcon={<ChevronDownIcon />}
+                                    variant="ghost"
+                                    color="#000C5C"
+                                    _hover={{ bg: "blackAlpha.100" }}
+                                >
+                                    <Flex alignItems="center">
+                                        <Avatar
+                                            size="sm"
+                                            name={`${user?.firstName} ${user?.lastName}`}
+                                            mr={2}
+                                        />
+                                        <Text>
+                                            {user?.firstName} {user?.lastName}
+                                        </Text>
+                                    </Flex>
+                                </MenuButton>
+                                <MenuList>
+                                    <MenuItem>Profile</MenuItem>
+                                    <MenuDivider />
+                                    <MenuItem onClick={handleLogout}>
+                                        Logout
+                                    </MenuItem>
+                                </MenuList>
+                            </Menu>
                         </Flex>
                     </Flex>
                 </Box>
