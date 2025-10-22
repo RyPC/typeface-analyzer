@@ -34,7 +34,13 @@ import {
     MESSAGE_FUNCTIONS,
 } from "./constants";
 
-export default function AddModal({ isOpen, onClose }) {
+export default function AddModal({
+    isOpen,
+    onClose,
+    isEditMode = false,
+    selectedPhoto = null,
+    onPhotoUpdated,
+}) {
     const [photo, setPhoto] = useState(null);
     const [photoPreview, setPhotoPreview] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -59,12 +65,53 @@ export default function AddModal({ isOpen, onClose }) {
         additionalNotes: "",
     });
 
-    // Fetch next photo from batch data when modal opens
+    // Initialize form data when modal opens
     useEffect(() => {
         if (isOpen) {
-            fetchNextPhoto();
+            if (isEditMode && selectedPhoto) {
+                // Pre-populate form with existing photo data
+                setFormData({
+                    placement: selectedPhoto.substrates?.[0]?.placement || "",
+                    additionalNotes:
+                        selectedPhoto.substrates?.[0]?.additionalNotes || "",
+                    trueSign:
+                        !selectedPhoto.substrates?.[0]?.thisIsntReallyASign,
+                    confidence: selectedPhoto.substrates?.[0]?.confidence || "",
+                    confidenceReasoning:
+                        selectedPhoto.substrates?.[0]?.confidenceReasoning ||
+                        "",
+                    additionalInfo:
+                        selectedPhoto.substrates?.[0]?.additionalInfo || "",
+                    typefaces: selectedPhoto.substrates?.[0]?.typefaces || [],
+                });
+
+                // Set the first typeface as current if available
+                if (selectedPhoto.substrates?.[0]?.typefaces?.length > 0) {
+                    const firstTypeface =
+                        selectedPhoto.substrates[0].typefaces[0];
+                    setCurrentTypeface({
+                        typefaceStyle: firstTypeface.typefaceStyle || [],
+                        text: firstTypeface.copy || "",
+                        letteringOntology:
+                            firstTypeface.letteringOntology || [],
+                        messageFunction:
+                            firstTypeface.messageFunction?.[0] || "",
+                        covidRelated: firstTypeface.covidRelated || false,
+                        additionalNotes: firstTypeface.additionalNotes || "",
+                    });
+                }
+
+                // Set photo preview if photo link exists
+                if (selectedPhoto.photoLink) {
+                    setPhotoPreview(selectedPhoto.photoLink);
+                    setPhoto({ name: selectedPhoto.custom_id || "photo.jpg" });
+                }
+            } else {
+                // For new photo mode, fetch from batch data
+                fetchNextPhoto();
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, isEditMode, selectedPhoto]);
 
     const fetchNextPhoto = async () => {
         try {
@@ -167,6 +214,75 @@ export default function AddModal({ isOpen, onClose }) {
         });
     };
 
+    const handleSubmit = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            if (isEditMode && selectedPhoto) {
+                // Update existing photo
+                const updateData = {
+                    substrates: [
+                        {
+                            placement: formData.placement,
+                            additionalNotes: formData.additionalNotes,
+                            thisIsntReallyASign: !formData.trueSign,
+                            typefaces: formData.typefaces.map((tf) => ({
+                                typefaceStyle: tf.typefaceStyle,
+                                copy: tf.text,
+                                letteringOntology: tf.letteringOntology,
+                                messageFunction: tf.messageFunction,
+                                covidRelated: tf.covidRelated,
+                                additionalNotes: tf.additionalNotes,
+                            })),
+                            confidence: parseInt(formData.confidence) || 0,
+                            confidenceReasoning: formData.confidenceReasoning,
+                            additionalInfo: formData.additionalInfo,
+                        },
+                    ],
+                    status: "completed", // Mark as completed when submitted
+                };
+
+                const response = await fetch(
+                    `${API_URL}/api/photos/${selectedPhoto._id}/update`,
+                    {
+                        method: "PATCH",
+                        headers: {
+                            Authorization: `Bearer ${localStorage.getItem(
+                                "token"
+                            )}`,
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(updateData),
+                    }
+                );
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || "Failed to update photo");
+                }
+
+                // Call the callback to refresh the parent component
+                if (onPhotoUpdated) {
+                    onPhotoUpdated();
+                }
+            } else {
+                // For new photos, keep the existing behavior (batch data)
+                // This would typically create a new photo entry
+                console.log("New photo submission:", {
+                    substrates: [formData],
+                });
+            }
+
+            closeModal();
+        } catch (err) {
+            setError(err.message);
+            console.error("Error submitting photo:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <Modal size="6xl" isOpen={isOpen} onClose={closeModal}>
             <ModalOverlay />
@@ -174,6 +290,8 @@ export default function AddModal({ isOpen, onClose }) {
                 <ModalHeader>
                     {loading
                         ? "Loading..."
+                        : isEditMode
+                        ? "Edit Photo Details"
                         : photo === null
                         ? "Upload Photo"
                         : "Edit Details"}
@@ -418,15 +536,12 @@ export default function AddModal({ isOpen, onClose }) {
                     <Button
                         colorScheme="blue"
                         mr={3}
-                        onClick={() => {
-                            // console.log({ substrates: [formData] });
-                            onClose();
-                            resetForm();
-                        }}
+                        onClick={handleSubmit}
+                        isLoading={loading}
                     >
-                        Submit
+                        {isEditMode ? "Update" : "Submit"}
                     </Button>
-                    <Button onClick={onClose}>Cancel</Button>
+                    <Button onClick={closeModal}>Cancel</Button>
                 </ModalFooter>
             </ModalContent>
         </Modal>

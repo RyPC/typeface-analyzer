@@ -20,6 +20,7 @@ import {
 import Dashboard from "./Dashboard.js";
 import Sidebar from "./Sidebar.js";
 import TableView from "./TableView.js";
+import LabelingPage from "./LabelingPage.js";
 import { useEffect, useState } from "react";
 import AddModal from "./AddModal.js";
 import { SettingsIcon, InfoIcon, ChevronDownIcon } from "@chakra-ui/icons";
@@ -35,6 +36,7 @@ export default function App() {
     const [photoCount, setPhotoCount] = useState(0);
     const { isOpen, onOpen, onClose } = useDisclosure();
 
+    const [currentPage, setCurrentPage] = useState("dashboard"); // "dashboard", "labeling", "table"
     const [view, setView] = useState("municipality"); // "municipality" or "map"
     const [selectedMunicipality, setSelectedMunicipality] =
         useState("All Municipalities");
@@ -208,6 +210,48 @@ export default function App() {
                         </Flex>
 
                         <Flex alignItems="center">
+                            <HStack spacing={4} mr={4}>
+                                <Button
+                                    variant={
+                                        currentPage === "dashboard"
+                                            ? "solid"
+                                            : "ghost"
+                                    }
+                                    colorScheme={
+                                        currentPage === "dashboard"
+                                            ? "blue"
+                                            : "gray"
+                                    }
+                                    onClick={() => setCurrentPage("dashboard")}
+                                    color={
+                                        currentPage === "dashboard"
+                                            ? "white"
+                                            : "#000C5C"
+                                    }
+                                >
+                                    Dashboard
+                                </Button>
+                                <Button
+                                    variant={
+                                        currentPage === "labeling"
+                                            ? "solid"
+                                            : "ghost"
+                                    }
+                                    colorScheme={
+                                        currentPage === "labeling"
+                                            ? "blue"
+                                            : "gray"
+                                    }
+                                    onClick={() => setCurrentPage("labeling")}
+                                    color={
+                                        currentPage === "labeling"
+                                            ? "white"
+                                            : "#000C5C"
+                                    }
+                                >
+                                    Labeling
+                                </Button>
+                            </HStack>
                             <Button
                                 variant="ghost"
                                 mr={2}
@@ -255,25 +299,7 @@ export default function App() {
                     </Flex>
                 </Box>
 
-                <HStack
-                    align="stretch"
-                    w="full"
-                    flex={1}
-                    spacing={0}
-                    overflow="hidden"
-                >
-                    <Sidebar
-                        onOpen={onOpen}
-                        view={view}
-                        setView={setView}
-                        municipality={selectedMunicipality}
-                        setMunicipality={setSelectedMunicipality}
-                        feature={selectedFeature}
-                        setFeature={setSelectedFeature}
-                        subFeature={selectedSubFeature}
-                        setSubFeature={setSelectedSubFeature}
-                        photoCount={photoCount}
-                    />
+                {currentPage === "labeling" ? (
                     <Box
                         flex={1}
                         overflowY="auto"
@@ -283,20 +309,52 @@ export default function App() {
                         backdropFilter="blur(10px)"
                         boxShadow="inset 0 4px 12px rgba(0, 0, 0, 0.05)"
                     >
-                        {view === "table" ? (
-                            <TableView onOpen={onOpen} />
-                        ) : (
-                            <Dashboard
-                                view={view}
-                                selectedMunicipality={selectedMunicipality}
-                                feature={selectedFeature}
-                                subFeature={selectedSubFeature}
-                            />
-                        )}
+                        <LabelingPage user={user} />
                     </Box>
+                ) : (
+                    <HStack
+                        align="stretch"
+                        w="full"
+                        flex={1}
+                        spacing={0}
+                        overflow="hidden"
+                    >
+                        <Sidebar
+                            onOpen={onOpen}
+                            view={view}
+                            setView={setView}
+                            municipality={selectedMunicipality}
+                            setMunicipality={setSelectedMunicipality}
+                            feature={selectedFeature}
+                            setFeature={setSelectedFeature}
+                            subFeature={selectedSubFeature}
+                            setSubFeature={setSelectedSubFeature}
+                            photoCount={photoCount}
+                        />
+                        <Box
+                            flex={1}
+                            overflowY="auto"
+                            p={4}
+                            borderRadius="15px 0 0 0"
+                            backgroundColor="rgba(255, 255, 255, 0.05)"
+                            backdropFilter="blur(10px)"
+                            boxShadow="inset 0 4px 12px rgba(0, 0, 0, 0.05)"
+                        >
+                            {currentPage === "table" ? (
+                                <TableView onOpen={onOpen} />
+                            ) : (
+                                <Dashboard
+                                    view={view}
+                                    selectedMunicipality={selectedMunicipality}
+                                    feature={selectedFeature}
+                                    subFeature={selectedSubFeature}
+                                />
+                            )}
+                        </Box>
 
-                    <AddModal isOpen={isOpen} onClose={onClose} />
-                </HStack>
+                        <AddModal isOpen={isOpen} onClose={onClose} />
+                    </HStack>
+                )}
 
                 {/* Footer */}
                 <Box w="full" py={2} px={6} bg="#000C5C" color="whiteAlpha.800">

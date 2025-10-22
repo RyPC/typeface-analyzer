@@ -638,9 +638,24 @@ app.post("/api/batch-import", upload.single("file"), async (req, res) => {
 
                 // Check if document with this custom_id already exists (case insensitive)
                 const existingDoc = await Photo.findOne({
-                    custom_id: {
-                        $regex: new RegExp(`^${rawData.custom_id}$`, "i"),
-                    },
+                    $or: [
+                        {
+                            custom_id: {
+                                $regex: new RegExp(
+                                    `^${rawData.custom_id}$`,
+                                    "i"
+                                ),
+                            },
+                        },
+                        {
+                            id: {
+                                $regex: new RegExp(
+                                    `^${rawData.custom_id}$`,
+                                    "i"
+                                ),
+                            },
+                        },
+                    ],
                 });
                 if (existingDoc) {
                     results.push({
@@ -667,10 +682,13 @@ app.post("/api/batch-import", upload.single("file"), async (req, res) => {
 
                 // Create the document to insert
                 const photo = new Photo({
+                    id: rawData.custom_id, // Use custom_id as the required id field
                     custom_id: rawData.custom_id,
                     lastUpdated: new Date(),
-                    status: "needs review",
-                    municipality: "", // This will need to be set manually
+                    submissionStarted: new Date(), // Set to current date
+                    status: "unclaimed",
+                    initials: "BATCH", // Set a default initial for batch imports
+                    municipality: "Unknown", // Set a default municipality
                     substrates: parsedData.substrates.map((substrate) => ({
                         placement: substrate.placement,
                         additionalNotes: substrate.additionalNotes,
@@ -836,6 +854,232 @@ app.get("/api/auth/verify", verifyToken, async (req, res) => {
     } catch (error) {
         console.error("Token verification error:", error);
         res.status(401).json({ message: "Invalid token" });
+    }
+});
+
+// Route to batch claim multiple photos
+app.patch("/api/photos/batch-claim", verifyToken, async (req, res) => {
+    try {
+        const { photoIds } = req.body;
+        const user = await User.findById(req.userId).select("-password");
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        if (!photoIds || !Array.isArray(photoIds) || photoIds.length === 0) {
+            return res
+                .status(400)
+                .json({ message: "Photo IDs array is required" });
+        }
+
+        // Find all photos that are unclaimed
+        const photos = await Photo.find({
+            _id: { $in: photoIds },
+            status: "unclaimed",
+        });
+
+        if (photos.length === 0) {
+            return res
+                .status(400)
+                .json({
+                    message: "No unclaimed photos found with the provided IDs",
+                });
+        }
+
+        // Update all found photos
+        const updateResult = await Photo.updateMany(
+            { _id: { $in: photos.map((p) => p._id) } },
+            {
+                $set: {
+                    status: "claimed",
+                    initials: user.initials,
+                    lastUpdated: new Date(),
+                },
+            }
+        );
+
+        res.json({
+            message: `Successfully claimed ${updateResult.modifiedCount} photos`,
+            claimedCount: updateResult.modifiedCount,
+            totalRequested: photoIds.length,
+            totalFound: photos.length,
+        });
+    } catch (error) {
+        console.error("Error batch claiming photos:", error);
+        res.status(500).json({ message: "Error batch claiming photos" });
+    }
+});
+
+// Route to claim a photo
+app.patch("/api/photos/:id/claim", verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findById(req.userId).select("-password");
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const photo = await Photo.findById(id);
+        if (!photo) {
+            return res.status(404).json({ message: "Photo not found" });
+        }
+
+        if (photo.status !== "unclaimed") {
+            return res
+                .status(400)
+                .json({ message: "Photo is already claimed or processed" });
+        }
+
+        photo.status = "claimed";
+        photo.initials = user.initials;
+        photo.lastUpdated = new Date();
+
+        await photo.save();
+
+        res.json({ message: "Photo claimed successfully", photo });
+    } catch (error) {
+        console.error("Error claiming photo:", error);
+        res.status(500).json({ message: "Error claiming photo" });
+    }
+});
+
+// Route to update photo labels
+app.patch("/api/photos/:id/update", verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findById(req.userId).select("-password");
+        const updateData = req.body;
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const photo = await Photo.findById(id);
+        if (!photo) {
+            return res.status(404).json({ message: "Photo not found" });
+        }
+
+        if (photo.status !== "claimed" && photo.status !== "in_progress") {
+            return res
+                .status(400)
+                .json({ message: "Photo must be claimed to update" });
+        }
+
+        if (photo.initials !== user.initials) {
+            return res.status(403).json({
+                message: "You can only update photos you have claimed",
+            });
+        }
+
+        // Update photo data
+        Object.keys(updateData).forEach((key) => {
+            if (key !== "_id" && key !== "id") {
+                photo[key] = updateData[key];
+            }
+        });
+
+        photo.lastUpdated = new Date();
+        await photo.save();
+
+        res.json({ message: "Photo updated successfully", photo });
+    } catch (error) {
+        console.error("Error updating photo:", error);
+        res.status(500).json({ message: "Error updating photo" });
+    }
+});
+
+// Route to get unclaimed photos
+app.get("/api/photos/unclaimed", verifyToken, async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        const sortOrder = req.query.sortOrder === "desc" ? -1 : 1;
+        const filterType = req.query.filterType;
+        const filterValue = req.query.filterValue;
+
+        // Build filter query
+        let query = { status: "unclaimed" };
+        if (filterType && filterValue) {
+            query[filterType] = filterValue;
+        }
+
+        // Get total count for pagination
+        const totalCount = await Photo.countDocuments(query);
+
+        // Get paginated data with sorting
+        const data = await Photo.find(query)
+            .sort({ lastUpdated: sortOrder })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+
+        res.json({
+            data,
+            pagination: {
+                total: totalCount,
+                page,
+                limit,
+                totalPages: Math.ceil(totalCount / limit),
+            },
+        });
+    } catch (error) {
+        console.error("Error getting unclaimed photos:", error);
+        res.status(500).json({ message: "Error getting unclaimed photos" });
+    }
+});
+
+// Route to get photos claimed by current user
+app.get("/api/photos/my-claimed", verifyToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.userId).select("-password");
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        const sortOrder = req.query.sortOrder === "desc" ? -1 : 1;
+        const filterType = req.query.filterType;
+        const filterValue = req.query.filterValue;
+
+        // Build filter query
+        let query = {
+            initials: user.initials,
+            status: { $in: ["claimed", "in_progress", "completed"] },
+        };
+        if (filterType && filterValue) {
+            query[filterType] = filterValue;
+        }
+
+        // Get total count for pagination
+        const totalCount = await Photo.countDocuments(query);
+
+        // Get paginated data with sorting
+        const data = await Photo.find(query)
+            .sort({ lastUpdated: sortOrder })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+
+        res.json({
+            data,
+            pagination: {
+                total: totalCount,
+                page,
+                limit,
+                totalPages: Math.ceil(totalCount / limit),
+            },
+        });
+    } catch (error) {
+        console.error("Error getting user's claimed photos:", error);
+        res.status(500).json({
+            message: "Error getting user's claimed photos",
+        });
     }
 });
 
