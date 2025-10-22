@@ -1,8 +1,11 @@
-import { Button, FormLabel, Input } from "@chakra-ui/react";
+import { Button, Input } from "@chakra-ui/react";
 import { DownloadIcon } from "@chakra-ui/icons";
 import Papa from "papaparse";
+import { useRef } from "react";
 
 export default function CsvToJsonConverter() {
+    const fileInputRef = useRef();
+
     const handleFileUpload = (event) => {
         const file = event.target.files[0];
         if (file) {
@@ -192,22 +195,18 @@ export default function CsvToJsonConverter() {
         <>
             <Input
                 type="file"
-                id="csv_upload"
-                name="csv_upload"
+                ref={fileInputRef}
                 accept=".csv"
                 onChange={handleFileUpload}
-                hidden
+                style={{ display: "none" }}
             />
-            <FormLabel htmlFor="csv_upload">
-                <Button
-                    as="span"
-                    colorScheme="blue"
-                    cursor="pointer"
-                    leftIcon={<DownloadIcon />}
-                >
-                    Convert CSV to JSON
-                </Button>
-            </FormLabel>
+            <Button
+                colorScheme="blue"
+                leftIcon={<DownloadIcon />}
+                onClick={() => fileInputRef.current.click()}
+            >
+                Convert CSV to JSON
+            </Button>
         </>
     );
 }

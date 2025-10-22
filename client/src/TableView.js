@@ -286,33 +286,6 @@ export default function TableView({ onOpen }) {
 
             <Flex justify="space-between" align="center" mb={4}>
                 <Text fontSize="2xl">Photo Table View</Text>
-                <HStack spacing={4}>
-                    <Button
-                        onClick={onOpen}
-                        colorScheme="teal"
-                        leftIcon={<AddIcon />}
-                        variant="solid"
-                        _hover={{ bg: "teal.500" }}
-                    >
-                        New Photo
-                    </Button>
-                    <input
-                        type="file"
-                        accept=".jsonl"
-                        onChange={handleBatchImport}
-                        style={{ display: "none" }}
-                        ref={fileInputRef}
-                    />
-                    <Button
-                        leftIcon={<AttachmentIcon />}
-                        colorScheme="blue"
-                        variant="solid"
-                        _hover={{ bg: "blue.500" }}
-                        onClick={() => fileInputRef.current.click()}
-                    >
-                        Import Batch
-                    </Button>
-                </HStack>
             </Flex>
 
             <Text fontSize="md" color="gray.600" mb={4}>

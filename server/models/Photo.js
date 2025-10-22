@@ -33,7 +33,7 @@ const photoSchema = new mongoose.Schema({
     submissionStarted: { type: Date, required: true },
     status: {
         type: String,
-        enum: ["started", "in_progress", "finished"],
+        enum: ["unclaimed", "claimed", "in_progress", "completed"],
         required: true,
     },
     initials: { type: String, required: true },
