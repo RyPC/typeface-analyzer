@@ -29,14 +29,12 @@ import {
     Badge,
     IconButton,
     Tooltip,
-    Checkbox,
 } from "@chakra-ui/react";
 import {
     ChevronLeftIcon,
     ChevronRightIcon,
     TriangleUpIcon,
     TriangleDownIcon,
-    AddIcon,
     AttachmentIcon,
     EditIcon,
     CheckIcon,
@@ -311,12 +309,6 @@ export default function LabelingPage({ user }) {
         onModalOpen();
     };
 
-    const handleNewPhoto = () => {
-        setSelectedPhoto(null);
-        setIsEditMode(false);
-        onModalOpen();
-    };
-
     const handlePreviousPage = (tab) => {
         if (tab === 0 && unclaimedPage > 1) {
             setUnclaimedPage(unclaimedPage - 1);
@@ -495,15 +487,6 @@ export default function LabelingPage({ user }) {
             <Flex justify="space-between" align="flex-start" mb={4}>
                 <Text fontSize="2xl">Photo Labeling</Text>
                 <VStack spacing={4} align="stretch">
-                    <Button
-                        onClick={handleNewPhoto}
-                        colorScheme="teal"
-                        leftIcon={<AddIcon />}
-                        variant="solid"
-                        _hover={{ bg: "teal.500" }}
-                    >
-                        New Photo
-                    </Button>
                     <input
                         type="file"
                         accept=".jsonl"
