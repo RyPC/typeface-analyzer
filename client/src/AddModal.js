@@ -34,6 +34,8 @@ import {
     MESSAGE_FUNCTIONS,
 } from "./constants";
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 export default function AddModal({
     isOpen,
     onClose,
@@ -101,11 +103,16 @@ export default function AddModal({
                     });
                 }
 
-                // Set photo preview if photo link exists
+                // Always set photo preview and photo object for edit mode
+                // This ensures we skip the upload step and go directly to the form
                 if (selectedPhoto.photoLink) {
                     setPhotoPreview(selectedPhoto.photoLink);
-                    setPhoto({ name: selectedPhoto.custom_id || "photo.jpg" });
+                } else {
+                    // If no photoLink, construct S3 URL from custom_id
+                    const s3Url = `https://typeface-s3-photo-bucket.s3.amazonaws.com/${selectedPhoto.custom_id}`;
+                    setPhotoPreview(s3Url);
                 }
+                setPhoto({ name: selectedPhoto.custom_id || "photo.jpg" });
             } else {
                 // For new photo mode, fetch from batch data
                 fetchNextPhoto();
@@ -294,7 +301,7 @@ export default function AddModal({
                         ? "Edit Photo Details"
                         : photo === null
                         ? "Upload Photo"
-                        : "Edit Details"}
+                        : "Label Photo Details"}
                 </ModalHeader>
                 <ModalCloseButton />
                 <ModalBody>
@@ -329,9 +336,16 @@ export default function AddModal({
                             >
                                 <Image
                                     src={photoPreview}
-                                    alt="Uploaded preview"
+                                    alt="Photo preview"
                                     maxH="400px"
                                     mt={4}
+                                    onError={(e) => {
+                                        console.error(
+                                            "Failed to load image:",
+                                            photoPreview
+                                        );
+                                        e.target.style.display = "none";
+                                    }}
                                 />
                             </Box>
                             <FormControl>

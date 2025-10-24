@@ -9,10 +9,27 @@ const Photo = require("./models/Photo");
 const User = require("./models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
 require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// AWS S3 Configuration
+const s3Client = new S3Client({
+    region: process.env.AWS_REGION || "us-east-1",
+    // If running on EC2 with IAM role, credentials will be automatically provided
+    // If using access keys, they'll be read from environment variables
+    ...(process.env.AWS_ACCESS_KEY_ID &&
+        process.env.AWS_SECRET_ACCESS_KEY && {
+            credentials: {
+                accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+                secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+            },
+        }),
+});
+
+const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME || "typeface-s3-photo-bucket";
 
 // MongoDB connection URI
 const uri = process.env.MONGODB_URI;
@@ -880,11 +897,9 @@ app.patch("/api/photos/batch-claim", verifyToken, async (req, res) => {
         });
 
         if (photos.length === 0) {
-            return res
-                .status(400)
-                .json({
-                    message: "No unclaimed photos found with the provided IDs",
-                });
+            return res.status(400).json({
+                message: "No unclaimed photos found with the provided IDs",
+            });
         }
 
         // Update all found photos
@@ -1016,8 +1031,16 @@ app.get("/api/photos/unclaimed", verifyToken, async (req, res) => {
             .limit(limit)
             .lean();
 
+        // Ensure all photos have a proper photoLink (S3 URL)
+        const dataWithPhotoLinks = data.map((photo) => ({
+            ...photo,
+            photoLink:
+                photo.photoLink ||
+                `https://${S3_BUCKET_NAME}.s3.amazonaws.com/${photo.custom_id}`,
+        }));
+
         res.json({
-            data,
+            data: dataWithPhotoLinks,
             pagination: {
                 total: totalCount,
                 page,
@@ -1066,8 +1089,16 @@ app.get("/api/photos/my-claimed", verifyToken, async (req, res) => {
             .limit(limit)
             .lean();
 
+        // Ensure all photos have a proper photoLink (S3 URL)
+        const dataWithPhotoLinks = data.map((photo) => ({
+            ...photo,
+            photoLink:
+                photo.photoLink ||
+                `https://${S3_BUCKET_NAME}.s3.amazonaws.com/${photo.custom_id}`,
+        }));
+
         res.json({
-            data,
+            data: dataWithPhotoLinks,
             pagination: {
                 total: totalCount,
                 page,
