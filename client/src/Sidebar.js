@@ -127,14 +127,6 @@ export default function Sidebar({
                             >
                                 Map View
                             </Button>
-                            <Button
-                                w="full"
-                                mb={2}
-                                colorScheme={view === "table" ? "blue" : "gray"}
-                                onClick={() => setView("table")}
-                            >
-                                Table View
-                            </Button>
                         </Box>
 
                         {/* Municipality selection */}
