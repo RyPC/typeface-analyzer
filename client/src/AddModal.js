@@ -109,7 +109,9 @@ export default function AddModal({
                     setPhotoPreview(selectedPhoto.photoLink);
                 } else {
                     // If no photoLink, construct S3 URL from custom_id
-                    const s3Url = `https://typeface-s3-photo-bucket.s3.amazonaws.com/${selectedPhoto.custom_id}`;
+                    const s3Url = `https://typeface-s3-photo-bucket.s3.amazonaws.com/${encodeURIComponent(
+                        "Font Census Data"
+                    )}/${selectedPhoto.custom_id}`;
                     setPhotoPreview(s3Url);
                 }
                 setPhoto({ name: selectedPhoto.custom_id || "photo.jpg" });

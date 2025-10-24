@@ -1036,7 +1036,9 @@ app.get("/api/photos/unclaimed", verifyToken, async (req, res) => {
             ...photo,
             photoLink:
                 photo.photoLink ||
-                `https://${S3_BUCKET_NAME}.s3.amazonaws.com/${photo.custom_id}`,
+                `https://${S3_BUCKET_NAME}.s3.amazonaws.com/${encodeURIComponent(
+                    "Font Census Data"
+                )}/${photo.custom_id}`,
         }));
 
         res.json({
@@ -1094,7 +1096,9 @@ app.get("/api/photos/my-claimed", verifyToken, async (req, res) => {
             ...photo,
             photoLink:
                 photo.photoLink ||
-                `https://${S3_BUCKET_NAME}.s3.amazonaws.com/${photo.custom_id}`,
+                `https://${S3_BUCKET_NAME}.s3.amazonaws.com/${encodeURIComponent(
+                    "Font Census Data"
+                )}/${photo.custom_id}`,
         }));
 
         res.json({
