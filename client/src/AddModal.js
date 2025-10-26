@@ -106,12 +106,18 @@ export default function AddModal({
                 // Always set photo preview and photo object for edit mode
                 // This ensures we skip the upload step and go directly to the form
                 if (selectedPhoto.photoLink) {
+                    console.log(
+                        `Client: Using existing photoLink for ${selectedPhoto.custom_id}:`,
+                        selectedPhoto.photoLink
+                    );
                     setPhotoPreview(selectedPhoto.photoLink);
                 } else {
                     // If no photoLink, construct S3 URL from custom_id
-                    const s3Url = `https://typeface-s3-photo-bucket.s3.amazonaws.com/${encodeURIComponent(
-                        "Font Census Data"
-                    )}/${selectedPhoto.custom_id}`;
+                    const s3Url = `https://typeface-s3-photo-bucket.s3.us-west-1.amazonaws.com/Font+Census+Data/${selectedPhoto.custom_id}`;
+                    console.log(
+                        `Client: Attempting to load S3 image for ${selectedPhoto.custom_id}:`,
+                        s3Url
+                    );
                     setPhotoPreview(s3Url);
                 }
                 setPhoto({ name: selectedPhoto.custom_id || "photo.jpg" });

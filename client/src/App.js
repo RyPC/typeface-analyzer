@@ -233,6 +233,26 @@ export default function App() {
                                 </Button>
                                 <Button
                                     variant={
+                                        currentPage === "table"
+                                            ? "solid"
+                                            : "ghost"
+                                    }
+                                    colorScheme={
+                                        currentPage === "table"
+                                            ? "blue"
+                                            : "gray"
+                                    }
+                                    onClick={() => setCurrentPage("table")}
+                                    color={
+                                        currentPage === "table"
+                                            ? "white"
+                                            : "#000C5C"
+                                    }
+                                >
+                                    Table View
+                                </Button>
+                                <Button
+                                    variant={
                                         currentPage === "labeling"
                                             ? "solid"
                                             : "ghost"
@@ -311,6 +331,19 @@ export default function App() {
                     >
                         <LabelingPage user={user} />
                     </Box>
+                ) : currentPage === "table" ? (
+                    <Box
+                        flex={1}
+                        overflowY="auto"
+                        p={4}
+                        borderRadius="15px 0 0 0"
+                        backgroundColor="rgba(255, 255, 255, 0.05)"
+                        backdropFilter="blur(10px)"
+                        boxShadow="inset 0 4px 12px rgba(0, 0, 0, 0.05)"
+                    >
+                        <TableView onOpen={onOpen} />
+                        <AddModal isOpen={isOpen} onClose={onClose} />
+                    </Box>
                 ) : (
                     <HStack
                         align="stretch"
@@ -340,16 +373,12 @@ export default function App() {
                             backdropFilter="blur(10px)"
                             boxShadow="inset 0 4px 12px rgba(0, 0, 0, 0.05)"
                         >
-                            {currentPage === "table" ? (
-                                <TableView onOpen={onOpen} />
-                            ) : (
-                                <Dashboard
-                                    view={view}
-                                    selectedMunicipality={selectedMunicipality}
-                                    feature={selectedFeature}
-                                    subFeature={selectedSubFeature}
-                                />
-                            )}
+                            <Dashboard
+                                view={view}
+                                selectedMunicipality={selectedMunicipality}
+                                feature={selectedFeature}
+                                subFeature={selectedSubFeature}
+                            />
                         </Box>
 
                         <AddModal isOpen={isOpen} onClose={onClose} />
