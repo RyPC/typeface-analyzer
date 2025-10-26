@@ -132,9 +132,7 @@ export default function AddModal({
         try {
             setLoading(true);
             setError(null);
-            const response = await fetch(
-                "http://localhost:3001/api/batch/next"
-            );
+            const response = await fetch(`${API_URL}/api/batch/next`);
             if (!response.ok) {
                 throw new Error("Failed to fetch photo data");
             }
