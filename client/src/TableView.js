@@ -21,6 +21,9 @@ import {
     ModalBody,
     Progress,
     VStack,
+    Input,
+    InputGroup,
+    InputLeftElement,
 } from "@chakra-ui/react";
 import {
     ChevronLeftIcon,
@@ -29,6 +32,7 @@ import {
     TriangleDownIcon,
     AddIcon,
     AttachmentIcon,
+    SearchIcon,
 } from "@chakra-ui/icons";
 import PhotoDetailsModal from "./PhotoDetailsModal";
 
@@ -49,6 +53,7 @@ export default function TableView({ onOpen }) {
     const [sortOrder, setSortOrder] = useState("asc");
     const [filterType, setFilterType] = useState("");
     const [filterValue, setFilterValue] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
     const [selectedPhoto, setSelectedPhoto] = useState(null);
     const {
         isOpen: isModalOpen,
@@ -94,9 +99,10 @@ export default function TableView({ onOpen }) {
             setLoading(true);
             const queryParams = new URLSearchParams({
                 page,
-                limit: 10,
+                limit: 20,
                 sortOrder,
                 ...(filterType && filterValue && { filterType, filterValue }),
+                ...(searchTerm && { search: searchTerm }),
             });
 
             const response = await fetch(
@@ -123,7 +129,7 @@ export default function TableView({ onOpen }) {
 
     useEffect(() => {
         fetchData(currentPage);
-    }, [currentPage, sortOrder, filterType, filterValue]);
+    }, [currentPage, sortOrder, filterType, filterValue, searchTerm]);
 
     const handlePreviousPage = () => {
         if (currentPage > 1) {
@@ -293,36 +299,53 @@ export default function TableView({ onOpen }) {
                 {filterType &&
                     filterValue &&
                     ` with ${filterType} "${filterValue}"`}
+                {searchTerm && ` matching "${searchTerm}"`}
             </Text>
 
-            <HStack spacing={4} mb={4}>
-                <Select
-                    placeholder="Filter by"
-                    value={filterType}
-                    onChange={handleFilterTypeChange}
-                    width="200px"
-                >
-                    {FILTER_TYPES.map((type) => (
-                        <option key={type.value} value={type.value}>
-                            {type.label}
-                        </option>
-                    ))}
-                </Select>
-                {filterType && (
+            <VStack spacing={4} mb={4} align="stretch">
+                <InputGroup>
+                    <InputLeftElement pointerEvents="none">
+                        <SearchIcon color="gray.300" />
+                    </InputLeftElement>
+                    <Input
+                        placeholder="Search photos by ID, municipality, initials..."
+                        value={searchTerm}
+                        onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setCurrentPage(1);
+                        }}
+                    />
+                </InputGroup>
+
+                <HStack spacing={4}>
                     <Select
-                        placeholder="Select value"
-                        value={filterValue}
-                        onChange={handleFilterValueChange}
+                        placeholder="Filter by"
+                        value={filterType}
+                        onChange={handleFilterTypeChange}
                         width="200px"
                     >
-                        {getFilterOptions().map((value) => (
-                            <option key={value} value={value}>
-                                {value}
+                        {FILTER_TYPES.map((type) => (
+                            <option key={type.value} value={type.value}>
+                                {type.label}
                             </option>
                         ))}
                     </Select>
-                )}
-            </HStack>
+                    {filterType && (
+                        <Select
+                            placeholder="Select value"
+                            value={filterValue}
+                            onChange={handleFilterValueChange}
+                            width="200px"
+                        >
+                            {getFilterOptions().map((value) => (
+                                <option key={value} value={value}>
+                                    {value}
+                                </option>
+                            ))}
+                        </Select>
+                    )}
+                </HStack>
+            </VStack>
 
             <Box overflowX="auto">
                 <Table variant="simple">

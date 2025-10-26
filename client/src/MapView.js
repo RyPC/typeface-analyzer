@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Box } from "@chakra-ui/react";
-import orangeCountyData from "./data/orange_county.geojson";
 import {
     TYPEFACE_STYLES,
     LETTERING_ONTOLOGIES,
@@ -55,7 +54,7 @@ export default function MapView({ feature, subFeature, view }) {
 
     // Load GeoJSON data
     useEffect(() => {
-        fetch(orangeCountyData)
+        fetch("/orange_county.geojson")
             .then((response) => response.json())
             .then((data) => {
                 setGeoJsonData(data);
