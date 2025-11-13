@@ -1,12 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
     Box,
-    Table,
-    Thead,
-    Tbody,
-    Tr,
-    Th,
-    Td,
     Button,
     Flex,
     Text,
@@ -25,16 +19,10 @@ import {
     InputGroup,
     InputLeftElement,
 } from "@chakra-ui/react";
-import {
-    ChevronLeftIcon,
-    ChevronRightIcon,
-    TriangleUpIcon,
-    TriangleDownIcon,
-    AddIcon,
-    AttachmentIcon,
-    SearchIcon,
-} from "@chakra-ui/icons";
+import { AttachmentIcon, SearchIcon } from "@chakra-ui/icons";
 import PhotoDetailsModal from "./PhotoDetailsModal";
+import PhotoTable from "./components/PhotoTable";
+import Pagination from "./components/Pagination";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -347,72 +335,20 @@ export default function TableView({ onOpen }) {
                 </HStack>
             </VStack>
 
-            <Box overflowX="auto">
-                <Table variant="simple">
-                    <Thead>
-                        <Tr>
-                            <Th>Status</Th>
-                            <Th>Municipality</Th>
-                            <Th>Initials</Th>
-                            <Th>
-                                <Flex
-                                    align="center"
-                                    cursor="pointer"
-                                    onClick={toggleSortOrder}
-                                >
-                                    Last Updated
-                                    {sortOrder === "desc" ? (
-                                        <TriangleDownIcon ml={2} />
-                                    ) : (
-                                        <TriangleUpIcon ml={2} />
-                                    )}
-                                </Flex>
-                            </Th>
-                            <Th>ID</Th>
-                        </Tr>
-                    </Thead>
-                    <Tbody>
-                        {data.map((item) => (
-                            <Tr
-                                key={item.custom_id}
-                                onClick={() => handleRowClick(item)}
-                                cursor="pointer"
-                                _hover={{ bg: "gray.50" }}
-                            >
-                                <Td>{item.status || "Active"}</Td>
-                                <Td>{item.municipality}</Td>
-                                <Td>{item.initials || "-"}</Td>
-                                <Td>
-                                    {new Date(
-                                        item.lastUpdated
-                                    ).toLocaleDateString()}
-                                </Td>
-                                <Td>{item.custom_id}</Td>
-                            </Tr>
-                        ))}
-                    </Tbody>
-                </Table>
-            </Box>
+            <PhotoTable
+                data={data}
+                sortOrder={sortOrder}
+                onSortToggle={toggleSortOrder}
+                onRowClick={handleRowClick}
+                showActions={false}
+            />
 
-            <Flex justify="center" align="center" mt={4} gap={4}>
-                <Button
-                    leftIcon={<ChevronLeftIcon />}
-                    onClick={handlePreviousPage}
-                    isDisabled={currentPage === 1}
-                >
-                    Previous
-                </Button>
-                <Text>
-                    Page {currentPage} of {totalPages}
-                </Text>
-                <Button
-                    rightIcon={<ChevronRightIcon />}
-                    onClick={handleNextPage}
-                    isDisabled={currentPage === totalPages}
-                >
-                    Next
-                </Button>
-            </Flex>
+            <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPrevious={handlePreviousPage}
+                onNext={handleNextPage}
+            />
 
             <PhotoDetailsModal
                 isOpen={isModalOpen}

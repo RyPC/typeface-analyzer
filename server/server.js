@@ -392,7 +392,10 @@ app.get("/api/municipalities", async (req, res) => {
             .toArray();
 
         // Transform the result to just return an array of municipality names
-        const municipalities = result.map((item) => item._id);
+        // Filter out null, undefined, empty strings, and "Unknown"
+        const municipalities = result
+            .map((item) => item._id)
+            .filter((m) => m && m !== "Unknown" && m.trim() !== "");
 
         res.json(municipalities);
     } catch (error) {
@@ -965,6 +968,48 @@ app.patch("/api/photos/:id/claim", verifyToken, async (req, res) => {
     }
 });
 
+// Route to unclaim a photo (release it back to unclaimed pool)
+app.patch("/api/photos/:id/unclaim", verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findById(req.userId).select("-password");
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const photo = await Photo.findById(id);
+        if (!photo) {
+            return res.status(404).json({ message: "Photo not found" });
+        }
+
+        // Only allow unclaim if the current user is the claimer
+        if (photo.initials !== user.initials) {
+            return res.status(403).json({
+                message: "You can only unclaim photos you have claimed",
+            });
+        }
+
+        // Allowed from claimed or in_progress; finished stays with user
+        if (photo.status === "finished") {
+            return res
+                .status(400)
+                .json({ message: "Finished photos cannot be unclaimed" });
+        }
+
+        photo.status = "unclaimed";
+        photo.initials = undefined; // Remove initials for unclaimed photos (schema allows this)
+        photo.lastUpdated = new Date();
+
+        await photo.save();
+
+        res.json({ message: "Photo unclaimed successfully", photo });
+    } catch (error) {
+        console.error("Error unclaiming photo:", error);
+        res.status(500).json({ message: "Error unclaiming photo" });
+    }
+});
+
 // Route to update photo labels
 app.patch("/api/photos/:id/update", verifyToken, async (req, res) => {
     try {
@@ -991,6 +1036,20 @@ app.patch("/api/photos/:id/update", verifyToken, async (req, res) => {
             return res.status(403).json({
                 message: "You can only update photos you have claimed",
             });
+        }
+
+        // Validate municipality if provided
+        if (updateData.municipality !== undefined) {
+            if (
+                !updateData.municipality ||
+                updateData.municipality === "" ||
+                updateData.municipality === "Unknown"
+            ) {
+                return res.status(400).json({
+                    message:
+                        "Municipality is required and cannot be empty or 'Unknown'",
+                });
+            }
         }
 
         // Update photo data
@@ -1036,13 +1095,11 @@ app.get("/api/photos/unclaimed", verifyToken, async (req, res) => {
             .limit(limit)
             .lean();
 
-        // Ensure all photos have a proper photoLink (S3 URL)
+        // Ensure all photos have a proper photoLink (S3 URL) constructed from custom_id
         const dataWithPhotoLinks = data.map((photo) => {
-            const constructedUrl =
-                photo.photoLink ||
-                `https://${S3_BUCKET_NAME}.s3.${
-                    process.env.AWS_REGION || "us-west-1"
-                }.amazonaws.com/Font+Census+Data/${photo.custom_id}`;
+            const constructedUrl = `https://${S3_BUCKET_NAME}.s3.${
+                process.env.AWS_REGION || "us-west-1"
+            }.amazonaws.com/Font+Census+Data/${photo.custom_id}`;
 
             console.log(
                 `Constructing S3 URL for photo ${photo.custom_id}:`,
@@ -1089,7 +1146,7 @@ app.get("/api/photos/my-claimed", verifyToken, async (req, res) => {
         // Build filter query
         let query = {
             initials: user.initials,
-            status: { $in: ["claimed", "in_progress", "completed"] },
+            status: { $in: ["claimed", "in_progress", "finished"] },
         };
         if (filterType && filterValue) {
             query[filterType] = filterValue;
@@ -1105,13 +1162,11 @@ app.get("/api/photos/my-claimed", verifyToken, async (req, res) => {
             .limit(limit)
             .lean();
 
-        // Ensure all photos have a proper photoLink (S3 URL)
+        // Ensure all photos have a proper photoLink (S3 URL) constructed from custom_id
         const dataWithPhotoLinks = data.map((photo) => {
-            const constructedUrl =
-                photo.photoLink ||
-                `https://${S3_BUCKET_NAME}.s3.${
-                    process.env.AWS_REGION || "us-west-1"
-                }.amazonaws.com/Font+Census+Data/${photo.custom_id}`;
+            const constructedUrl = `https://${S3_BUCKET_NAME}.s3.${
+                process.env.AWS_REGION || "us-west-1"
+            }.amazonaws.com/Font+Census+Data/${photo.custom_id}`;
 
             console.log(
                 `Constructing S3 URL for photo ${photo.custom_id}:`,

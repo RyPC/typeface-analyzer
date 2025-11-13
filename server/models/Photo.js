@@ -33,10 +33,16 @@ const photoSchema = new mongoose.Schema({
     submissionStarted: { type: Date, required: true },
     status: {
         type: String,
-        enum: ["unclaimed", "claimed", "in_progress", "completed"],
+        enum: ["unclaimed", "claimed", "in_progress", "finished"],
         required: true,
     },
-    initials: { type: String, required: true },
+    initials: { 
+        type: String, 
+        required: function() {
+            // Required only if status is not "unclaimed"
+            return this.status !== "unclaimed";
+        }
+    },
     municipality: { type: String, required: true },
     custom_id: { type: String },
     photoLink: { type: String },

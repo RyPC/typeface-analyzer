@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
     Modal,
     ModalOverlay,
@@ -16,6 +16,34 @@ import {
 } from "@chakra-ui/react";
 
 export default function PhotoDetailsModal({ isOpen, onClose, photo }) {
+    const [imageUrl, setImageUrl] = useState(null);
+    const [imageError, setImageError] = useState(false);
+
+    useEffect(() => {
+        if (photo && isOpen) {
+            console.log("PhotoDetailsModal - Photo data:", photo);
+            console.log("PhotoDetailsModal - custom_id:", photo.custom_id);
+            console.log("PhotoDetailsModal - photoLink:", photo.photoLink);
+
+            // Always construct S3 URL from custom_id
+            if (photo.custom_id) {
+                const s3Url = `https://typeface-s3-photo-bucket.s3.us-west-1.amazonaws.com/Font+Census+Data/${photo.custom_id}`;
+                console.log(
+                    `Client: Constructing S3 URL from custom_id for ${photo.custom_id}:`,
+                    s3Url
+                );
+                setImageUrl(s3Url);
+            } else {
+                console.log("PhotoDetailsModal - No custom_id found");
+                setImageUrl(null);
+            }
+        } else if (!isOpen) {
+            // Reset when modal closes
+            setImageUrl(null);
+            setImageError(false);
+        }
+    }, [photo, isOpen]);
+
     if (!photo) return null;
 
     return (
@@ -26,6 +54,49 @@ export default function PhotoDetailsModal({ isOpen, onClose, photo }) {
                 <ModalCloseButton />
                 <ModalBody pb={6}>
                     <VStack spacing={4} align="stretch">
+                        {/* Image */}
+                        <Box>
+                            {imageUrl ? (
+                                <>
+                                    {!imageError ? (
+                                        <Image
+                                            src={imageUrl}
+                                            alt="Photo"
+                                            maxH="400px"
+                                            objectFit="contain"
+                                            onError={(e) => {
+                                                console.error(
+                                                    "Failed to load image:",
+                                                    imageUrl
+                                                );
+                                                setImageError(true);
+                                            }}
+                                            onLoad={() => {
+                                                console.log(
+                                                    "Image loaded successfully:",
+                                                    imageUrl
+                                                );
+                                                setImageError(false);
+                                            }}
+                                        />
+                                    ) : (
+                                        <Text color="red.500" fontSize="sm">
+                                            Failed to load image from:{" "}
+                                            {imageUrl}
+                                        </Text>
+                                    )}
+                                </>
+                            ) : (
+                                <Text color="gray.500" fontSize="sm">
+                                    {photo.custom_id
+                                        ? `No image URL available for ${photo.custom_id}`
+                                        : "No image available"}
+                                </Text>
+                            )}
+                        </Box>
+
+                        <Divider />
+
                         {/* Basic Info */}
                         <Box>
                             <Text fontWeight="bold" mb={2}>
@@ -62,7 +133,7 @@ export default function PhotoDetailsModal({ isOpen, onClose, photo }) {
                                         Placement: {substrate.placement}
                                     </Text>
                                     {substrate.additionalNotes && (
-                                        <Text>
+                                        <Text whiteSpace="pre-wrap">
                                             Notes: {substrate.additionalNotes}
                                         </Text>
                                     )}
@@ -72,7 +143,7 @@ export default function PhotoDetailsModal({ isOpen, onClose, photo }) {
                                     </Text>
 
                                     {substrate.additionalInfo && (
-                                        <Text>
+                                        <Text whiteSpace="pre-wrap">
                                             Additional Info:{" "}
                                             {substrate.additionalInfo}
                                         </Text>
@@ -108,6 +179,7 @@ export default function PhotoDetailsModal({ isOpen, onClose, photo }) {
                                                             as="span"
                                                             fontStyle="italic"
                                                             fontWeight="medium"
+                                                            whiteSpace="pre-wrap"
                                                         >
                                                             "{typeface.copy}"
                                                         </Text>
@@ -139,7 +211,7 @@ export default function PhotoDetailsModal({ isOpen, onClose, photo }) {
                                                             : "No"}
                                                     </Text>
                                                     {typeface.additionalNotes && (
-                                                        <Text>
+                                                        <Text whiteSpace="pre-wrap">
                                                             Notes:{" "}
                                                             {
                                                                 typeface.additionalNotes
@@ -156,31 +228,13 @@ export default function PhotoDetailsModal({ isOpen, onClose, photo }) {
                                         </Text>
                                     )}
                                     {substrate.confidenceReasoning && (
-                                        <Text>
+                                        <Text whiteSpace="pre-wrap">
                                             Confidence Reasoning:{" "}
                                             {substrate.confidenceReasoning}
                                         </Text>
                                     )}
                                 </Box>
                             ))}
-
-                        {/* Image */}
-                        {photo.imageUrl && (
-                            <>
-                                <Divider />
-                                <Box>
-                                    <Text fontWeight="bold" mb={2}>
-                                        Image
-                                    </Text>
-                                    <Image
-                                        src={photo.imageUrl}
-                                        alt="Photo"
-                                        maxH="400px"
-                                        objectFit="contain"
-                                    />
-                                </Box>
-                            </>
-                        )}
                     </VStack>
                 </ModalBody>
             </ModalContent>
