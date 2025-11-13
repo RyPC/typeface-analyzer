@@ -27,10 +27,17 @@ import {
     Divider,
     Badge,
     Text,
+    AlertDialog,
+    AlertDialogBody,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogContent,
+    AlertDialogOverlay,
+    useDisclosure,
 } from "@chakra-ui/react";
 import { DeleteIcon, AddIcon } from "@chakra-ui/icons";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 
 import {
     TYPEFACE_STYLES,
@@ -55,7 +62,7 @@ function TypefaceForm({
         <VStack spacing={3} align="stretch">
             <FormControl>
                 <FormLabel>Text</FormLabel>
-                <Input
+                <Textarea
                     value={formData.text || ""}
                     onChange={(e) =>
                         onUpdateFormData({
@@ -63,6 +70,8 @@ function TypefaceForm({
                             text: e.target.value,
                         })
                     }
+                    rows={4}
+                    resize="vertical"
                 />
             </FormControl>
 
@@ -182,6 +191,12 @@ export default function AddModal({
     const [error, setError] = useState(null);
     const [municipality, setMunicipality] = useState("");
     const [municipalities, setMunicipalities] = useState([]);
+    const {
+        isOpen: isConfirmOpen,
+        onOpen: onConfirmOpen,
+        onClose: onConfirmClose,
+    } = useDisclosure();
+    const cancelRef = React.useRef();
 
     // Changed to support multiple substrates
     const [substrates, setSubstrates] = useState([
@@ -598,7 +613,7 @@ export default function AddModal({
         });
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (setFinished = false) => {
         try {
             setLoading(true);
             setError(null);
@@ -636,8 +651,12 @@ export default function AddModal({
                         confidenceReasoning: substrate.confidenceReasoning,
                         additionalInfo: substrate.additionalInfo,
                     })),
-                    status: "finished", // Mark as finished when submitted
                 };
+
+                // Only set status to finished if confirming
+                if (setFinished) {
+                    updateData.status = "finished";
+                }
 
                 const response = await fetch(
                     `${API_URL}/api/photos/${selectedPhoto._id}/update`,
@@ -687,7 +706,11 @@ export default function AddModal({
                     {loading
                         ? "Loading..."
                         : isEditMode
-                        ? "Edit Photo Details"
+                        ? `Edit Photo Details${
+                              selectedPhoto?.custom_id
+                                  ? ` - ${selectedPhoto.custom_id}`
+                                  : ""
+                          }`
                         : photo === null
                         ? "Upload Photo"
                         : "Label Photo Details"}
@@ -715,24 +738,20 @@ export default function AddModal({
                             />
                         </FormControl>
                     ) : (
-                        <VStack
-                            spacing={4}
-                            align="stretch"
-                            maxH="80vh"
-                            overflowY="auto"
-                        >
+                        <HStack spacing={6} align="flex-start" maxH="80vh">
+                            {/* Left Side - Image */}
                             <Box
-                                w="100%"
-                                display="flex"
-                                alignContent="center"
-                                alignItems="center"
-                                justifyContent="center"
+                                flex="0 0 40%"
+                                position="sticky"
+                                top={0}
+                                alignSelf="flex-start"
                             >
                                 <Image
                                     src={photoPreview}
                                     alt="Photo preview"
-                                    maxH="400px"
-                                    mt={4}
+                                    maxH="80vh"
+                                    maxW="100%"
+                                    objectFit="contain"
                                     onError={(e) => {
                                         console.error(
                                             "Failed to load image:",
@@ -743,430 +762,547 @@ export default function AddModal({
                                 />
                             </Box>
 
-                            {/* Municipality Selection */}
-                            <FormControl isRequired>
-                                <FormLabel>Municipality *</FormLabel>
-                                <Select
-                                    value={municipality}
-                                    onChange={(e) =>
-                                        setMunicipality(e.target.value)
-                                    }
-                                    placeholder="Select a municipality"
-                                    isInvalid={
-                                        !municipality ||
-                                        municipality === "" ||
-                                        municipality === "Unknown"
-                                    }
-                                >
-                                    {municipalities.map((muni) => (
-                                        <option key={muni} value={muni}>
-                                            {muni}
-                                        </option>
-                                    ))}
-                                </Select>
-                            </FormControl>
+                            {/* Right Side - Form */}
+                            <Box flex="1" maxH="80vh" overflowY="auto" pr={2}>
+                                <VStack spacing={4} align="stretch">
+                                    {/* Municipality Selection */}
+                                    <FormControl isRequired>
+                                        <FormLabel>Municipality</FormLabel>
+                                        <Select
+                                            value={municipality}
+                                            onChange={(e) =>
+                                                setMunicipality(e.target.value)
+                                            }
+                                            placeholder="Select a municipality"
+                                            isInvalid={
+                                                !municipality ||
+                                                municipality === "" ||
+                                                municipality === "Unknown"
+                                            }
+                                        >
+                                            {municipalities.map((muni) => (
+                                                <option key={muni} value={muni}>
+                                                    {muni}
+                                                </option>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
 
-                            {/* Substrates List */}
-                            <VStack spacing={4} align="stretch">
-                                {substrates.map((substrate, substrateIndex) => (
-                                    <Box
-                                        key={substrateIndex}
-                                        borderWidth="2px"
-                                        borderRadius="lg"
-                                        p={4}
-                                        borderColor="gray.200"
-                                    >
-                                        <HStack justify="space-between" mb={3}>
-                                            <HStack>
-                                                <Text
-                                                    fontWeight="bold"
-                                                    fontSize="lg"
+                                    {/* Substrates List */}
+                                    <VStack spacing={4} align="stretch">
+                                        {substrates.map(
+                                            (substrate, substrateIndex) => (
+                                                <Box
+                                                    key={substrateIndex}
+                                                    borderWidth="2px"
+                                                    borderRadius="lg"
+                                                    p={4}
+                                                    borderColor="gray.200"
                                                 >
-                                                    Substrate{" "}
-                                                    {substrateIndex + 1}
-                                                </Text>
-                                                <Badge colorScheme="orange">
-                                                    {substrate.typefaces.length}{" "}
-                                                    typeface
-                                                    {substrate.typefaces
-                                                        .length !== 1
-                                                        ? "s"
-                                                        : ""}
-                                                </Badge>
-                                            </HStack>
-                                            <HStack>
-                                                {substrates.length > 1 && (
-                                                    <IconButton
-                                                        icon={<DeleteIcon />}
-                                                        colorScheme="red"
-                                                        size="sm"
-                                                        aria-label="Remove substrate"
-                                                        onClick={() =>
-                                                            handleRemoveSubstrate(
-                                                                substrateIndex
-                                                            )
-                                                        }
-                                                    />
-                                                )}
-                                            </HStack>
-                                        </HStack>
-
-                                        <VStack spacing={3} align="stretch">
-                                            <FormControl>
-                                                <FormLabel>Placement</FormLabel>
-                                                <Select
-                                                    value={substrate.placement}
-                                                    onChange={(e) =>
-                                                        handleUpdateSubstrate(
-                                                            substrateIndex,
-                                                            "placement",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                >
-                                                    {PLACEMENTS.map((p) => (
-                                                        <option key={p}>
-                                                            {p}
-                                                        </option>
-                                                    ))}
-                                                </Select>
-                                            </FormControl>
-
-                                            <FormControl>
-                                                <FormLabel>
-                                                    Additional Notes
-                                                </FormLabel>
-                                                <Textarea
-                                                    value={
-                                                        substrate.additionalNotes
-                                                    }
-                                                    onChange={(e) =>
-                                                        handleUpdateSubstrate(
-                                                            substrateIndex,
-                                                            "additionalNotes",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                />
-                                            </FormControl>
-
-                                            <FormControl>
-                                                <Checkbox
-                                                    isChecked={
-                                                        substrate.trueSign
-                                                    }
-                                                    onChange={(e) =>
-                                                        handleUpdateSubstrate(
-                                                            substrateIndex,
-                                                            "trueSign",
-                                                            e.target.checked
-                                                        )
-                                                    }
-                                                >
-                                                    True Sign?
-                                                </Checkbox>
-                                            </FormControl>
-
-                                            <FormControl>
-                                                <FormLabel>
-                                                    Confidence
-                                                </FormLabel>
-                                                <Input
-                                                    type="number"
-                                                    value={substrate.confidence}
-                                                    onChange={(e) =>
-                                                        handleUpdateSubstrate(
-                                                            substrateIndex,
-                                                            "confidence",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                />
-                                            </FormControl>
-
-                                            <FormControl>
-                                                <FormLabel>
-                                                    Confidence Reasoning
-                                                </FormLabel>
-                                                <Textarea
-                                                    value={
-                                                        substrate.confidenceReasoning
-                                                    }
-                                                    onChange={(e) =>
-                                                        handleUpdateSubstrate(
-                                                            substrateIndex,
-                                                            "confidenceReasoning",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                />
-                                            </FormControl>
-
-                                            <FormControl>
-                                                <FormLabel>
-                                                    Additional Info
-                                                </FormLabel>
-                                                <Textarea
-                                                    value={
-                                                        substrate.additionalInfo
-                                                    }
-                                                    onChange={(e) =>
-                                                        handleUpdateSubstrate(
-                                                            substrateIndex,
-                                                            "additionalInfo",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                />
-                                            </FormControl>
-
-                                            {/* Typefaces for this substrate */}
-                                            <Divider />
-                                            <Box>
-                                                <Text fontWeight="bold" mb={2}>
-                                                    Typefaces:
-                                                </Text>
-                                                {substrate.typefaces.length ===
-                                                    0 &&
-                                                (!editingTypeface ||
-                                                    editingTypeface.substrateIndex !==
-                                                        substrateIndex) ? (
-                                                    <Text
-                                                        color="gray.500"
-                                                        fontSize="sm"
+                                                    <HStack
+                                                        justify="space-between"
+                                                        mb={3}
                                                     >
-                                                        No typefaces added yet
-                                                    </Text>
-                                                ) : (
+                                                        <HStack>
+                                                            <Text
+                                                                fontWeight="bold"
+                                                                fontSize="lg"
+                                                            >
+                                                                Substrate{" "}
+                                                                {substrateIndex +
+                                                                    1}
+                                                            </Text>
+                                                            <Badge colorScheme="orange">
+                                                                {
+                                                                    substrate
+                                                                        .typefaces
+                                                                        .length
+                                                                }{" "}
+                                                                typeface
+                                                                {substrate
+                                                                    .typefaces
+                                                                    .length !==
+                                                                1
+                                                                    ? "s"
+                                                                    : ""}
+                                                            </Badge>
+                                                        </HStack>
+                                                        <HStack>
+                                                            {substrates.length >
+                                                                1 && (
+                                                                <IconButton
+                                                                    icon={
+                                                                        <DeleteIcon />
+                                                                    }
+                                                                    colorScheme="red"
+                                                                    size="sm"
+                                                                    aria-label="Remove substrate"
+                                                                    onClick={() =>
+                                                                        handleRemoveSubstrate(
+                                                                            substrateIndex
+                                                                        )
+                                                                    }
+                                                                />
+                                                            )}
+                                                        </HStack>
+                                                    </HStack>
+
                                                     <VStack
-                                                        spacing={2}
+                                                        spacing={3}
                                                         align="stretch"
                                                     >
-                                                        {substrate.typefaces.map(
-                                                            (
-                                                                typeface,
-                                                                typefaceIndex
-                                                            ) => {
-                                                                const isEditing =
-                                                                    editingTypeface &&
-                                                                    editingTypeface.substrateIndex ===
-                                                                        substrateIndex &&
-                                                                    editingTypeface.typefaceIndex ===
-                                                                        typefaceIndex;
+                                                        <FormControl>
+                                                            <FormLabel>
+                                                                Placement
+                                                            </FormLabel>
+                                                            <Select
+                                                                value={
+                                                                    substrate.placement
+                                                                }
+                                                                onChange={(e) =>
+                                                                    handleUpdateSubstrate(
+                                                                        substrateIndex,
+                                                                        "placement",
+                                                                        e.target
+                                                                            .value
+                                                                    )
+                                                                }
+                                                            >
+                                                                {PLACEMENTS.map(
+                                                                    (p) => (
+                                                                        <option
+                                                                            key={
+                                                                                p
+                                                                            }
+                                                                        >
+                                                                            {p}
+                                                                        </option>
+                                                                    )
+                                                                )}
+                                                            </Select>
+                                                        </FormControl>
 
-                                                                return (
-                                                                    <Box
-                                                                        key={
+                                                        <FormControl>
+                                                            <FormLabel>
+                                                                Additional Notes
+                                                            </FormLabel>
+                                                            <Textarea
+                                                                value={
+                                                                    substrate.additionalNotes
+                                                                }
+                                                                onChange={(e) =>
+                                                                    handleUpdateSubstrate(
+                                                                        substrateIndex,
+                                                                        "additionalNotes",
+                                                                        e.target
+                                                                            .value
+                                                                    )
+                                                                }
+                                                            />
+                                                        </FormControl>
+
+                                                        <FormControl>
+                                                            <Checkbox
+                                                                isChecked={
+                                                                    substrate.trueSign
+                                                                }
+                                                                onChange={(e) =>
+                                                                    handleUpdateSubstrate(
+                                                                        substrateIndex,
+                                                                        "trueSign",
+                                                                        e.target
+                                                                            .checked
+                                                                    )
+                                                                }
+                                                            >
+                                                                True Sign?
+                                                            </Checkbox>
+                                                        </FormControl>
+
+                                                        <FormControl>
+                                                            <FormLabel>
+                                                                Confidence
+                                                            </FormLabel>
+                                                            <Input
+                                                                type="number"
+                                                                value={
+                                                                    substrate.confidence
+                                                                }
+                                                                onChange={(e) =>
+                                                                    handleUpdateSubstrate(
+                                                                        substrateIndex,
+                                                                        "confidence",
+                                                                        e.target
+                                                                            .value
+                                                                    )
+                                                                }
+                                                            />
+                                                        </FormControl>
+
+                                                        <FormControl>
+                                                            <FormLabel>
+                                                                Confidence
+                                                                Reasoning
+                                                            </FormLabel>
+                                                            <Textarea
+                                                                value={
+                                                                    substrate.confidenceReasoning
+                                                                }
+                                                                onChange={(e) =>
+                                                                    handleUpdateSubstrate(
+                                                                        substrateIndex,
+                                                                        "confidenceReasoning",
+                                                                        e.target
+                                                                            .value
+                                                                    )
+                                                                }
+                                                            />
+                                                        </FormControl>
+
+                                                        <FormControl>
+                                                            <FormLabel>
+                                                                Additional Info
+                                                            </FormLabel>
+                                                            <Textarea
+                                                                value={
+                                                                    substrate.additionalInfo
+                                                                }
+                                                                onChange={(e) =>
+                                                                    handleUpdateSubstrate(
+                                                                        substrateIndex,
+                                                                        "additionalInfo",
+                                                                        e.target
+                                                                            .value
+                                                                    )
+                                                                }
+                                                            />
+                                                        </FormControl>
+
+                                                        {/* Typefaces for this substrate */}
+                                                        <Divider />
+                                                        <Box>
+                                                            <Text
+                                                                fontWeight="bold"
+                                                                mb={2}
+                                                            >
+                                                                Typefaces:
+                                                            </Text>
+                                                            {substrate.typefaces
+                                                                .length === 0 &&
+                                                            (!editingTypeface ||
+                                                                editingTypeface.substrateIndex !==
+                                                                    substrateIndex) ? (
+                                                                <Text
+                                                                    color="gray.500"
+                                                                    fontSize="sm"
+                                                                >
+                                                                    No typefaces
+                                                                    added yet
+                                                                </Text>
+                                                            ) : (
+                                                                <VStack
+                                                                    spacing={2}
+                                                                    align="stretch"
+                                                                >
+                                                                    {substrate.typefaces.map(
+                                                                        (
+                                                                            typeface,
                                                                             typefaceIndex
-                                                                        }
-                                                                        p={3}
-                                                                        bg={
-                                                                            isEditing
-                                                                                ? "blue.50"
-                                                                                : "gray.50"
-                                                                        }
-                                                                        borderRadius="md"
-                                                                        borderWidth={
-                                                                            isEditing
-                                                                                ? "2px"
-                                                                                : "0px"
-                                                                        }
-                                                                        borderColor="blue.500"
-                                                                    >
-                                                                        {isEditing ? (
-                                                                            <TypefaceForm
-                                                                                substrateIndex={
-                                                                                    substrateIndex
-                                                                                }
-                                                                                typefaceIndex={
-                                                                                    typefaceIndex
-                                                                                }
-                                                                                formData={getTypefaceForm(
-                                                                                    substrateIndex
-                                                                                )}
-                                                                                onUpdateFormData={(
-                                                                                    data
-                                                                                ) =>
-                                                                                    setTypefaceForm(
-                                                                                        substrateIndex,
-                                                                                        data
-                                                                                    )
-                                                                                }
-                                                                                onSave={() =>
-                                                                                    handleUpdateTypeface(
-                                                                                        substrateIndex,
+                                                                        ) => {
+                                                                            const isEditing =
+                                                                                editingTypeface &&
+                                                                                editingTypeface.substrateIndex ===
+                                                                                    substrateIndex &&
+                                                                                editingTypeface.typefaceIndex ===
+                                                                                    typefaceIndex;
+
+                                                                            return (
+                                                                                <Box
+                                                                                    key={
                                                                                         typefaceIndex
-                                                                                    )
-                                                                                }
-                                                                                onCancel={() =>
-                                                                                    handleCancelEdit(
-                                                                                        substrateIndex
-                                                                                    )
-                                                                                }
-                                                                            />
-                                                                        ) : (
-                                                                            <>
-                                                                                <HStack
-                                                                                    justify="space-between"
-                                                                                    mb={
-                                                                                        2
                                                                                     }
+                                                                                    p={
+                                                                                        3
+                                                                                    }
+                                                                                    bg={
+                                                                                        isEditing
+                                                                                            ? "blue.50"
+                                                                                            : "gray.50"
+                                                                                    }
+                                                                                    borderRadius="md"
+                                                                                    borderWidth={
+                                                                                        isEditing
+                                                                                            ? "2px"
+                                                                                            : "0px"
+                                                                                    }
+                                                                                    borderColor="blue.500"
                                                                                 >
-                                                                                    <Text
-                                                                                        fontWeight="medium"
-                                                                                        fontSize="sm"
-                                                                                    >
-                                                                                        Typeface{" "}
-                                                                                        {typefaceIndex +
-                                                                                            1}
-                                                                                    </Text>
-                                                                                    <HStack>
-                                                                                        <Button
-                                                                                            size="xs"
-                                                                                            colorScheme="blue"
-                                                                                            variant="outline"
-                                                                                            onClick={() =>
-                                                                                                handleEditTypeface(
+                                                                                    {isEditing ? (
+                                                                                        <TypefaceForm
+                                                                                            substrateIndex={
+                                                                                                substrateIndex
+                                                                                            }
+                                                                                            typefaceIndex={
+                                                                                                typefaceIndex
+                                                                                            }
+                                                                                            formData={getTypefaceForm(
+                                                                                                substrateIndex
+                                                                                            )}
+                                                                                            onUpdateFormData={(
+                                                                                                data
+                                                                                            ) =>
+                                                                                                setTypefaceForm(
+                                                                                                    substrateIndex,
+                                                                                                    data
+                                                                                                )
+                                                                                            }
+                                                                                            onSave={() =>
+                                                                                                handleUpdateTypeface(
                                                                                                     substrateIndex,
                                                                                                     typefaceIndex
                                                                                                 )
                                                                                             }
-                                                                                        >
-                                                                                            Edit
-                                                                                        </Button>
-                                                                                        <IconButton
-                                                                                            icon={
-                                                                                                <DeleteIcon />
-                                                                                            }
-                                                                                            colorScheme="red"
-                                                                                            size="xs"
-                                                                                            aria-label="Remove typeface"
-                                                                                            onClick={() =>
-                                                                                                handleRemoveTypeface(
-                                                                                                    substrateIndex,
-                                                                                                    typefaceIndex
+                                                                                            onCancel={() =>
+                                                                                                handleCancelEdit(
+                                                                                                    substrateIndex
                                                                                                 )
                                                                                             }
                                                                                         />
-                                                                                    </HStack>
-                                                                                </HStack>
-                                                                                <VStack
-                                                                                    align="stretch"
-                                                                                    spacing={
-                                                                                        1
-                                                                                    }
-                                                                                >
-                                                                                    <Text fontSize="xs">
-                                                                                        <strong>
-                                                                                            Text:
-                                                                                        </strong>{" "}
-                                                                                        {typeface.text ||
-                                                                                            "-"}
-                                                                                    </Text>
-                                                                                    <Text fontSize="xs">
-                                                                                        <strong>
-                                                                                            Style:
-                                                                                        </strong>{" "}
-                                                                                        {Array.isArray(
-                                                                                            typeface.typefaceStyle
-                                                                                        )
-                                                                                            ? typeface.typefaceStyle.join(
-                                                                                                  ", "
-                                                                                              )
-                                                                                            : "-"}
-                                                                                    </Text>
-                                                                                    <Text fontSize="xs">
-                                                                                        <strong>
-                                                                                            COVID
-                                                                                            Related:
-                                                                                        </strong>{" "}
-                                                                                        {typeface.covidRelated
-                                                                                            ? "Yes"
-                                                                                            : "No"}
-                                                                                    </Text>
-                                                                                </VStack>
-                                                                            </>
-                                                                        )}
-                                                                    </Box>
-                                                                );
-                                                            }
-                                                        )}
-                                                    </VStack>
-                                                )}
-
-                                                {/* Add/Edit Typeface Form for this substrate */}
-                                                {(!editingTypeface ||
-                                                    editingTypeface.substrateIndex !==
-                                                        substrateIndex) && (
-                                                    <Box
-                                                        mt={3}
-                                                        p={3}
-                                                        bg="blue.50"
-                                                        borderRadius="md"
-                                                    >
-                                                        <Text
-                                                            fontWeight="bold"
-                                                            mb={2}
-                                                            fontSize="sm"
-                                                        >
-                                                            Add Typeface to
-                                                            Substrate{" "}
-                                                            {substrateIndex + 1}
-                                                        </Text>
-                                                        <TypefaceForm
-                                                            substrateIndex={
-                                                                substrateIndex
-                                                            }
-                                                            formData={getTypefaceForm(
-                                                                substrateIndex
+                                                                                    ) : (
+                                                                                        <>
+                                                                                            <HStack
+                                                                                                justify="space-between"
+                                                                                                mb={
+                                                                                                    2
+                                                                                                }
+                                                                                            >
+                                                                                                <Text
+                                                                                                    fontWeight="medium"
+                                                                                                    fontSize="sm"
+                                                                                                >
+                                                                                                    Typeface{" "}
+                                                                                                    {typefaceIndex +
+                                                                                                        1}
+                                                                                                </Text>
+                                                                                                <HStack>
+                                                                                                    <Button
+                                                                                                        size="xs"
+                                                                                                        colorScheme="blue"
+                                                                                                        variant="outline"
+                                                                                                        onClick={() =>
+                                                                                                            handleEditTypeface(
+                                                                                                                substrateIndex,
+                                                                                                                typefaceIndex
+                                                                                                            )
+                                                                                                        }
+                                                                                                    >
+                                                                                                        Edit
+                                                                                                    </Button>
+                                                                                                    <IconButton
+                                                                                                        icon={
+                                                                                                            <DeleteIcon />
+                                                                                                        }
+                                                                                                        colorScheme="red"
+                                                                                                        size="xs"
+                                                                                                        aria-label="Remove typeface"
+                                                                                                        onClick={() =>
+                                                                                                            handleRemoveTypeface(
+                                                                                                                substrateIndex,
+                                                                                                                typefaceIndex
+                                                                                                            )
+                                                                                                        }
+                                                                                                    />
+                                                                                                </HStack>
+                                                                                            </HStack>
+                                                                                            <VStack
+                                                                                                align="stretch"
+                                                                                                spacing={
+                                                                                                    1
+                                                                                                }
+                                                                                            >
+                                                                                                <Text
+                                                                                                    fontSize="xs"
+                                                                                                    whiteSpace="pre-wrap"
+                                                                                                >
+                                                                                                    <strong>
+                                                                                                        Text:
+                                                                                                    </strong>{" "}
+                                                                                                    {typeface.text ||
+                                                                                                        "-"}
+                                                                                                </Text>
+                                                                                                <Text fontSize="xs">
+                                                                                                    <strong>
+                                                                                                        Style:
+                                                                                                    </strong>{" "}
+                                                                                                    {Array.isArray(
+                                                                                                        typeface.typefaceStyle
+                                                                                                    )
+                                                                                                        ? typeface.typefaceStyle.join(
+                                                                                                              ", "
+                                                                                                          )
+                                                                                                        : "-"}
+                                                                                                </Text>
+                                                                                                <Text fontSize="xs">
+                                                                                                    <strong>
+                                                                                                        COVID
+                                                                                                        Related:
+                                                                                                    </strong>{" "}
+                                                                                                    {typeface.covidRelated
+                                                                                                        ? "Yes"
+                                                                                                        : "No"}
+                                                                                                </Text>
+                                                                                            </VStack>
+                                                                                        </>
+                                                                                    )}
+                                                                                </Box>
+                                                                            );
+                                                                        }
+                                                                    )}
+                                                                </VStack>
                                                             )}
-                                                            onUpdateFormData={(
-                                                                data
-                                                            ) =>
-                                                                setTypefaceForm(
-                                                                    substrateIndex,
-                                                                    data
-                                                                )
-                                                            }
-                                                            onSave={() =>
-                                                                handleAddTypeface(
-                                                                    substrateIndex
-                                                                )
-                                                            }
-                                                            isAddMode={true}
-                                                        />
-                                                    </Box>
-                                                )}
-                                            </Box>
-                                        </VStack>
-                                    </Box>
-                                ))}
 
-                                {/* Add Substrate Button */}
-                                <Button
-                                    leftIcon={<AddIcon />}
-                                    colorScheme="green"
-                                    onClick={handleAddSubstrate}
-                                >
-                                    Add Substrate
-                                </Button>
-                            </VStack>
-                        </VStack>
+                                                            {/* Add/Edit Typeface Form for this substrate */}
+                                                            {(!editingTypeface ||
+                                                                editingTypeface.substrateIndex !==
+                                                                    substrateIndex) && (
+                                                                <Box
+                                                                    mt={3}
+                                                                    p={3}
+                                                                    bg="blue.50"
+                                                                    borderRadius="md"
+                                                                >
+                                                                    <Text
+                                                                        fontWeight="bold"
+                                                                        mb={2}
+                                                                        fontSize="sm"
+                                                                    >
+                                                                        Add
+                                                                        Typeface
+                                                                        to
+                                                                        Substrate{" "}
+                                                                        {substrateIndex +
+                                                                            1}
+                                                                    </Text>
+                                                                    <TypefaceForm
+                                                                        substrateIndex={
+                                                                            substrateIndex
+                                                                        }
+                                                                        formData={getTypefaceForm(
+                                                                            substrateIndex
+                                                                        )}
+                                                                        onUpdateFormData={(
+                                                                            data
+                                                                        ) =>
+                                                                            setTypefaceForm(
+                                                                                substrateIndex,
+                                                                                data
+                                                                            )
+                                                                        }
+                                                                        onSave={() =>
+                                                                            handleAddTypeface(
+                                                                                substrateIndex
+                                                                            )
+                                                                        }
+                                                                        isAddMode={
+                                                                            true
+                                                                        }
+                                                                    />
+                                                                </Box>
+                                                            )}
+                                                        </Box>
+                                                    </VStack>
+                                                </Box>
+                                            )
+                                        )}
+
+                                        {/* Add Substrate Button */}
+                                        <Button
+                                            leftIcon={<AddIcon />}
+                                            colorScheme="green"
+                                            onClick={handleAddSubstrate}
+                                        >
+                                            Add Substrate
+                                        </Button>
+                                    </VStack>
+                                </VStack>
+                            </Box>
+                        </HStack>
                     )}
                 </ModalBody>
 
                 <ModalFooter>
-                    <Button
-                        colorScheme="blue"
-                        mr={3}
-                        onClick={handleSubmit}
-                        isLoading={loading}
-                    >
-                        {isEditMode ? "Update" : "Submit"}
+                    {isEditMode ? (
+                        <>
+                            <Button
+                                colorScheme="blue"
+                                variant="outline"
+                                mr={3}
+                                onClick={() => handleSubmit(false)}
+                                isLoading={loading}
+                            >
+                                Update
+                            </Button>
+                            <Button
+                                colorScheme="teal"
+                                mr={3}
+                                onClick={onConfirmOpen}
+                                isLoading={loading}
+                            >
+                                Confirm
+                            </Button>
+                        </>
+                    ) : (
+                        <Button
+                            colorScheme="blue"
+                            mr={3}
+                            onClick={() => handleSubmit(false)}
+                            isLoading={loading}
+                        >
+                            Submit
+                        </Button>
+                    )}
+                    <Button variant="ghost" onClick={closeModal}>
+                        Cancel
                     </Button>
-                    <Button onClick={closeModal}>Cancel</Button>
                 </ModalFooter>
             </ModalContent>
+
+            {/* Confirmation Dialog */}
+            <AlertDialog
+                isOpen={isConfirmOpen}
+                leastDestructiveRef={cancelRef}
+                onClose={onConfirmClose}
+            >
+                <AlertDialogOverlay>
+                    <AlertDialogContent>
+                        <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                            Confirm Completion
+                        </AlertDialogHeader>
+
+                        <AlertDialogBody>
+                            Are you sure you want to mark this photo as
+                            finished? This will set the status to "finished" and
+                            complete the labeling process.
+                        </AlertDialogBody>
+
+                        <AlertDialogFooter>
+                            <Button ref={cancelRef} onClick={onConfirmClose}>
+                                Cancel
+                            </Button>
+                            <Button
+                                colorScheme="teal"
+                                onClick={() => {
+                                    onConfirmClose();
+                                    handleSubmit(true);
+                                }}
+                                ml={3}
+                            >
+                                Confirm
+                            </Button>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialogOverlay>
+            </AlertDialog>
         </Modal>
     );
 }
