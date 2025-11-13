@@ -180,6 +180,7 @@ export default function PhotoDetailsModal({ isOpen, onClose, photo }) {
                                                             fontStyle="italic"
                                                             fontWeight="medium"
                                                             whiteSpace="pre-wrap"
+                                                            display="block"
                                                         >
                                                             "{typeface.copy}"
                                                         </Text>

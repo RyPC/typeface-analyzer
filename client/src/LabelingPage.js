@@ -41,6 +41,11 @@ const FILTER_TYPES = [
     { value: "initials", label: "Initials" },
 ];
 
+const MY_PHOTOS_FILTER_TYPES = [
+    { value: "municipality", label: "Municipality" },
+    { value: "status", label: "Status" },
+];
+
 export default function LabelingPage({ user }) {
     const [unclaimedData, setUnclaimedData] = useState([]);
     const [claimedData, setClaimedData] = useState([]);
@@ -70,6 +75,7 @@ export default function LabelingPage({ user }) {
     const [filterOptions, setFilterOptions] = useState({
         municipalities: [],
         initials: [],
+        statuses: [],
     });
     const toast = useToast();
     const [isImporting, setIsImporting] = useState(false);
@@ -397,6 +403,8 @@ export default function LabelingPage({ user }) {
                 return filterOptions.municipalities;
             case "initials":
                 return filterOptions.initials;
+            case "status":
+                return filterOptions.statuses;
             default:
                 return [];
         }
@@ -655,7 +663,7 @@ export default function LabelingPage({ user }) {
                                 onChange={handleFilterTypeChange}
                                 width="200px"
                             >
-                                {FILTER_TYPES.map((type) => (
+                                {MY_PHOTOS_FILTER_TYPES.map((type) => (
                                     <option key={type.value} value={type.value}>
                                         {type.label}
                                     </option>
