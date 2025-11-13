@@ -4,6 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "concurrently \"npm run start:server\" \"npm run start:client\"",
+    "start:server": "cd server && npm start",
+    "start:client": "cd client && npm start",
+    "dev": "concurrently \"npm run dev:server\" \"npm run start:client\"",
+    "dev:server": "cd server && npm run dev",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -12,5 +18,8 @@
   "dependencies": {
     "mapbox-gl": "^3.11.1",
     "react-map-gl": "^8.0.4"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   }
 }

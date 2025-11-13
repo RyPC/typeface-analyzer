@@ -20,27 +20,19 @@ import {
     TabPanels,
     Tab,
     TabPanel,
-    Table,
-    Thead,
-    Tbody,
-    Tr,
-    Th,
-    Td,
-    Badge,
     IconButton,
     Tooltip,
 } from "@chakra-ui/react";
 import {
-    ChevronLeftIcon,
-    ChevronRightIcon,
-    TriangleUpIcon,
-    TriangleDownIcon,
     AttachmentIcon,
     EditIcon,
     CheckIcon,
 } from "@chakra-ui/icons";
 import AddModal from "./AddModal";
+import PhotoDetailsModal from "./PhotoDetailsModal";
 import CsvToJsonConverter from "./csvToJson";
+import PhotoTable from "./components/PhotoTable";
+import Pagination from "./components/Pagination";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -64,10 +56,16 @@ export default function LabelingPage({ user }) {
     const [filterValue, setFilterValue] = useState("");
     const [selectedPhoto, setSelectedPhoto] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
+    const [viewPhoto, setViewPhoto] = useState(null);
     const {
         isOpen: isModalOpen,
         onOpen: onModalOpen,
         onClose: onModalClose,
+    } = useDisclosure();
+    const {
+        isOpen: isViewModalOpen,
+        onOpen: onViewModalOpen,
+        onClose: onViewModalClose,
     } = useDisclosure();
     const [filterOptions, setFilterOptions] = useState({
         municipalities: [],
@@ -287,6 +285,49 @@ export default function LabelingPage({ user }) {
         }
     };
 
+    const handleUnclaimPhoto = async (photoId) => {
+        try {
+            const response = await fetch(
+                `${API_URL}/api/photos/${photoId}/unclaim`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem(
+                            "token"
+                        )}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || "Failed to unclaim photo");
+            }
+
+            toast({
+                title: "Released",
+                description: "Photo returned to unclaimed pool",
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+            });
+
+            await Promise.all([
+                fetchUnclaimedData(unclaimedPage),
+                fetchClaimedData(claimedPage),
+            ]);
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: error.message,
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        }
+    };
+
     const handleSelectPhoto = (photoId) => {
         setSelectedPhotos((prev) =>
             prev.includes(photoId)
@@ -303,10 +344,18 @@ export default function LabelingPage({ user }) {
         }
     };
 
-    const handleEditPhoto = (photo) => {
+    const handleEditPhoto = (photo, e) => {
+        if (e) {
+            e.stopPropagation(); // Prevent row click from firing
+        }
         setSelectedPhoto(photo);
         setIsEditMode(true);
         onModalOpen();
+    };
+
+    const handleViewPhoto = (photo) => {
+        setViewPhoto(photo);
+        onViewModalOpen();
     };
 
     const handlePreviousPage = (tab) => {
@@ -440,20 +489,6 @@ export default function LabelingPage({ user }) {
         event.target.value = "";
     };
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case "unclaimed":
-                return "gray";
-            case "claimed":
-                return "blue";
-            case "in_progress":
-                return "orange";
-            case "completed":
-                return "green";
-            default:
-                return "gray";
-        }
-    };
 
     if (loading) {
         return (
@@ -575,92 +610,33 @@ export default function LabelingPage({ user }) {
                             )}
                         </HStack>
 
-                        <Box overflowX="auto">
-                            <Table variant="simple">
-                                <Thead>
-                                    <Tr>
-                                        <Th>Status</Th>
-                                        <Th>Municipality</Th>
-                                        <Th>Initials</Th>
-                                        <Th>
-                                            <Flex
-                                                align="center"
-                                                cursor="pointer"
-                                                onClick={toggleSortOrder}
-                                            >
-                                                Last Updated
-                                                {sortOrder === "desc" ? (
-                                                    <TriangleDownIcon ml={2} />
-                                                ) : (
-                                                    <TriangleUpIcon ml={2} />
-                                                )}
-                                            </Flex>
-                                        </Th>
-                                        <Th>ID</Th>
-                                        <Th>Actions</Th>
-                                    </Tr>
-                                </Thead>
-                                <Tbody>
-                                    {unclaimedData.map((item) => (
-                                        <Tr key={item._id}>
-                                            <Td>
-                                                <Badge
-                                                    colorScheme={getStatusColor(
-                                                        item.status
-                                                    )}
-                                                >
-                                                    {item.status}
-                                                </Badge>
-                                            </Td>
-                                            <Td>{item.municipality || "-"}</Td>
-                                            <Td>{item.initials || "-"}</Td>
-                                            <Td>
-                                                {new Date(
-                                                    item.lastUpdated
-                                                ).toLocaleDateString()}
-                                            </Td>
-                                            <Td>{item.custom_id}</Td>
-                                            <Td>
-                                                <Tooltip label="Claim this photo">
-                                                    <IconButton
-                                                        icon={<CheckIcon />}
-                                                        colorScheme="green"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            handleClaimPhoto(
-                                                                item._id
-                                                            )
-                                                        }
-                                                    />
-                                                </Tooltip>
-                                            </Td>
-                                        </Tr>
-                                    ))}
-                                </Tbody>
-                            </Table>
-                        </Box>
+                        <PhotoTable
+                            data={unclaimedData}
+                            sortOrder={sortOrder}
+                            onSortToggle={toggleSortOrder}
+                            onRowClick={handleViewPhoto}
+                            actionButtons={(item) => (
+                                <Tooltip label="Claim this photo">
+                                    <IconButton
+                                        icon={<CheckIcon />}
+                                        colorScheme="green"
+                                        size="sm"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleClaimPhoto(item._id);
+                                        }}
+                                    />
+                                </Tooltip>
+                            )}
+                            showActions={true}
+                        />
 
-                        <Flex justify="center" align="center" mt={4} gap={4}>
-                            <Button
-                                leftIcon={<ChevronLeftIcon />}
-                                onClick={() => handlePreviousPage(0)}
-                                isDisabled={unclaimedPage === 1}
-                            >
-                                Previous
-                            </Button>
-                            <Text>
-                                Page {unclaimedPage} of {unclaimedTotalPages}
-                            </Text>
-                            <Button
-                                rightIcon={<ChevronRightIcon />}
-                                onClick={() => handleNextPage(0)}
-                                isDisabled={
-                                    unclaimedPage === unclaimedTotalPages
-                                }
-                            >
-                                Next
-                            </Button>
-                        </Flex>
+                        <Pagination
+                            currentPage={unclaimedPage}
+                            totalPages={unclaimedTotalPages}
+                            onPrevious={() => handlePreviousPage(0)}
+                            onNext={() => handleNextPage(0)}
+                        />
                     </TabPanel>
 
                     {/* My Photos Tab */}
@@ -701,90 +677,49 @@ export default function LabelingPage({ user }) {
                             )}
                         </HStack>
 
-                        <Box overflowX="auto">
-                            <Table variant="simple">
-                                <Thead>
-                                    <Tr>
-                                        <Th>Status</Th>
-                                        <Th>Municipality</Th>
-                                        <Th>Initials</Th>
-                                        <Th>
-                                            <Flex
-                                                align="center"
-                                                cursor="pointer"
-                                                onClick={toggleSortOrder}
-                                            >
-                                                Last Updated
-                                                {sortOrder === "desc" ? (
-                                                    <TriangleDownIcon ml={2} />
-                                                ) : (
-                                                    <TriangleUpIcon ml={2} />
-                                                )}
-                                            </Flex>
-                                        </Th>
-                                        <Th>ID</Th>
-                                        <Th>Actions</Th>
-                                    </Tr>
-                                </Thead>
-                                <Tbody>
-                                    {claimedData.map((item) => (
-                                        <Tr key={item._id}>
-                                            <Td>
-                                                <Badge
-                                                    colorScheme={getStatusColor(
-                                                        item.status
-                                                    )}
-                                                >
-                                                    {item.status}
-                                                </Badge>
-                                            </Td>
-                                            <Td>{item.municipality || "-"}</Td>
-                                            <Td>{item.initials || "-"}</Td>
-                                            <Td>
-                                                {new Date(
-                                                    item.lastUpdated
-                                                ).toLocaleDateString()}
-                                            </Td>
-                                            <Td>{item.custom_id}</Td>
-                                            <Td>
-                                                <Tooltip label="Edit/Label this photo">
-                                                    <IconButton
-                                                        icon={<EditIcon />}
-                                                        colorScheme="blue"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            handleEditPhoto(
-                                                                item
-                                                            )
-                                                        }
-                                                    />
-                                                </Tooltip>
-                                            </Td>
-                                        </Tr>
-                                    ))}
-                                </Tbody>
-                            </Table>
-                        </Box>
+                        <PhotoTable
+                            data={claimedData}
+                            sortOrder={sortOrder}
+                            onSortToggle={toggleSortOrder}
+                            onRowClick={handleViewPhoto}
+                            actionButtons={(item) => (
+                                <>
+                                    <Tooltip label="Edit/Label this photo">
+                                        <IconButton
+                                            icon={<EditIcon />}
+                                            colorScheme="blue"
+                                            size="sm"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleEditPhoto(item, e);
+                                            }}
+                                        />
+                                    </Tooltip>
+                                    <Tooltip label="Release this photo (unclaim)">
+                                        <Button
+                                            ml={2}
+                                            colorScheme="red"
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleUnclaimPhoto(item._id);
+                                            }}
+                                        >
+                                            Give Up
+                                        </Button>
+                                    </Tooltip>
+                                </>
+                            )}
+                            showActions={true}
+                        />
 
-                        <Flex justify="center" align="center" mt={4} gap={4}>
-                            <Button
-                                leftIcon={<ChevronLeftIcon />}
-                                onClick={() => handlePreviousPage(1)}
-                                isDisabled={claimedPage === 1}
-                            >
-                                Previous
-                            </Button>
-                            <Text>
-                                Page {claimedPage} of {claimedTotalPages}
-                            </Text>
-                            <Button
-                                rightIcon={<ChevronRightIcon />}
-                                onClick={() => handleNextPage(1)}
-                                isDisabled={claimedPage === claimedTotalPages}
-                            >
-                                Next
-                            </Button>
-                        </Flex>
+                        <Pagination
+                            currentPage={claimedPage}
+                            totalPages={claimedTotalPages}
+                            onPrevious={() => handlePreviousPage(1)}
+                            onNext={() => handleNextPage(1)}
+                        />
                     </TabPanel>
                 </TabPanels>
             </Tabs>
@@ -798,6 +733,11 @@ export default function LabelingPage({ user }) {
                     fetchClaimedData(claimedPage);
                     fetchUnclaimedData(unclaimedPage);
                 }}
+            />
+            <PhotoDetailsModal
+                isOpen={isViewModalOpen}
+                onClose={onViewModalClose}
+                photo={viewPhoto}
             />
         </Box>
     );
