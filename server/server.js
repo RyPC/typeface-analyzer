@@ -634,6 +634,35 @@ app.get("/api/table-data", async (req, res) => {
             }
         }
 
+        // Handle search query
+        if (req.query.search) {
+            const searchTerm = req.query.search.trim();
+            if (searchTerm) {
+                const searchRegex = new RegExp(searchTerm, "i"); // case-insensitive
+                const searchConditions = {
+                    $or: [
+                        { id: searchRegex },
+                        { custom_id: searchRegex },
+                        { municipality: searchRegex },
+                        { initials: searchRegex },
+                    ],
+                };
+
+                // If there are existing filters, combine with $and
+                const hasExistingFilters = Object.keys(query).length > 0;
+                if (hasExistingFilters) {
+                    // Convert existing query to $and format
+                    const existingConditions = { ...query };
+                    query = {
+                        $and: [existingConditions, searchConditions],
+                    };
+                } else {
+                    // No existing filters, use search conditions directly
+                    query = searchConditions;
+                }
+            }
+        }
+
         // Get total count for pagination
         const totalCount = await Photo.countDocuments(query);
 

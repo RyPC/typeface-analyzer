@@ -37,6 +37,7 @@ export default function TableView({ onOpen }) {
     const [sortOrder, setSortOrder] = useState("asc");
     const [filters, setFilters] = useState([]); // Array of {type, value} objects
     const [searchTerm, setSearchTerm] = useState("");
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
     const [selectedPhoto, setSelectedPhoto] = useState(null);
     const {
         isOpen: isModalOpen,
@@ -83,6 +84,15 @@ export default function TableView({ onOpen }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Debounce search term
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
     const fetchData = async (page) => {
         try {
             setLoading(true);
@@ -90,7 +100,7 @@ export default function TableView({ onOpen }) {
                 page,
                 limit: 20,
                 sortOrder,
-                ...(searchTerm && { search: searchTerm }),
+                ...(debouncedSearchTerm && { search: debouncedSearchTerm }),
             });
 
             // Add filters as JSON-encoded string
@@ -129,7 +139,7 @@ export default function TableView({ onOpen }) {
     useEffect(() => {
         fetchData(currentPage);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentPage, sortOrder, filters, searchTerm]);
+    }, [currentPage, sortOrder, filters, debouncedSearchTerm]);
 
     const handlePreviousPage = () => {
         if (currentPage > 1) {
@@ -254,14 +264,6 @@ export default function TableView({ onOpen }) {
         event.target.value = "";
     };
 
-    if (loading) {
-        return (
-            <Flex justify="center" align="center" h="100vh">
-                <Spinner size="xl" />
-            </Flex>
-        );
-    }
-
     return (
         <VStack align="stretch" w="full" h="100%" spacing={0} overflow="hidden">
             {/* Import Progress Modal */}
@@ -372,29 +374,37 @@ export default function TableView({ onOpen }) {
                 backdropFilter="blur(10px)"
                 boxShadow="inset 0 4px 12px rgba(0, 0, 0, 0.05)"
             >
-                <Text fontSize="md" color="gray.600" mb={4}>
-                    {totalCount} {totalCount === 1 ? "photo" : "photos"} found
-                    {filters.length > 0 &&
-                        ` with ${filters.length} filter${
-                            filters.length !== 1 ? "s" : ""
-                        } applied`}
-                    {searchTerm && ` matching "${searchTerm}"`}
-                </Text>
+                {loading ? (
+                    <Flex justify="center" align="center" h="400px">
+                        <Spinner size="xl" />
+                    </Flex>
+                ) : (
+                    <>
+                        <Text fontSize="md" color="gray.600" mb={4}>
+                            {totalCount} {totalCount === 1 ? "photo" : "photos"} found
+                            {filters.length > 0 &&
+                                ` with ${filters.length} filter${
+                                    filters.length !== 1 ? "s" : ""
+                                } applied`}
+                            {searchTerm && ` matching "${searchTerm}"`}
+                        </Text>
 
-            <PhotoTable
-                data={data}
-                sortOrder={sortOrder}
-                onSortToggle={toggleSortOrder}
-                onRowClick={handleRowClick}
-                showActions={false}
-            />
+                        <PhotoTable
+                            data={data}
+                            sortOrder={sortOrder}
+                            onSortToggle={toggleSortOrder}
+                            onRowClick={handleRowClick}
+                            showActions={false}
+                        />
 
-            <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPrevious={handlePreviousPage}
-                onNext={handleNextPage}
-            />
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPrevious={handlePreviousPage}
+                            onNext={handleNextPage}
+                        />
+                    </>
+                )}
 
             <PhotoDetailsModal
                 isOpen={isModalOpen}
