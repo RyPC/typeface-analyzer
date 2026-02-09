@@ -22,6 +22,7 @@ import {
     TabPanel,
     IconButton,
     Tooltip,
+    Divider,
 } from "@chakra-ui/react";
 import {
     AttachmentIcon,
@@ -33,6 +34,7 @@ import PhotoDetailsModal from "./PhotoDetailsModal";
 import CsvToJsonConverter from "./csvToJson";
 import PhotoTable from "./components/PhotoTable";
 import Pagination from "./components/Pagination";
+import PageHeader from "./components/PageHeader";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -507,7 +509,7 @@ export default function LabelingPage({ user }) {
     }
 
     return (
-        <Box p={4}>
+        <VStack align="stretch" w="full" h="100%" spacing={0} overflow="hidden">
             {/* Import Progress Modal */}
             <Modal
                 isOpen={isImporting}
@@ -527,9 +529,10 @@ export default function LabelingPage({ user }) {
                 </ModalContent>
             </Modal>
 
-            <Flex justify="space-between" align="flex-start" mb={4}>
-                <Text fontSize="2xl">Photo Labeling</Text>
-                <VStack spacing={4} align="stretch">
+            {/* Top Bar */}
+            <PageHeader title="Photo Labeling">
+                {/* Import Batch Button */}
+                <HStack spacing={2}>
                     <input
                         type="file"
                         accept=".jsonl"
@@ -539,16 +542,38 @@ export default function LabelingPage({ user }) {
                     />
                     <Button
                         leftIcon={<AttachmentIcon />}
+                        size="sm"
                         colorScheme="blue"
-                        variant="solid"
-                        _hover={{ bg: "blue.500" }}
                         onClick={() => fileInputRef.current.click()}
                     >
                         Import Batch
                     </Button>
-                    <CsvToJsonConverter />
-                </VStack>
-            </Flex>
+                </HStack>
+
+                <Divider
+                    orientation="vertical"
+                    height="40px"
+                    borderColor="gray.300"
+                />
+
+                {/* CSV Converter */}
+                <HStack spacing={2}>
+                    <CsvToJsonConverter 
+                        size="sm"
+                        colorScheme="blue"
+                    />
+                </HStack>
+            </PageHeader>
+
+            {/* Content Area */}
+            <Box
+                flex={1}
+                overflowY="auto"
+                p={4}
+                backgroundColor="rgba(255, 255, 255, 0.05)"
+                backdropFilter="blur(10px)"
+                boxShadow="inset 0 4px 12px rgba(0, 0, 0, 0.05)"
+            >
 
             <Tabs index={activeTab} onChange={setActiveTab}>
                 <TabList>
@@ -747,6 +772,7 @@ export default function LabelingPage({ user }) {
                 onClose={onViewModalClose}
                 photo={viewPhoto}
             />
-        </Box>
+            </Box>
+        </VStack>
     );
 }

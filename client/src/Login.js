@@ -16,10 +16,12 @@ import {
     TabPanel,
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
 export default function Login({ onLogin }) {
+    const navigate = useNavigate();
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -65,6 +67,8 @@ export default function Login({ onLogin }) {
                 // Store the token in localStorage
                 localStorage.setItem("token", data.token);
                 onLogin(data.token, data.user);
+                // Redirect to dashboard after successful login
+                navigate("/dashboard");
             } else {
                 toast({
                     title: "Login failed",

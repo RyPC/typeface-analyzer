@@ -3,7 +3,7 @@ import { DownloadIcon } from "@chakra-ui/icons";
 import Papa from "papaparse";
 import { useRef } from "react";
 
-export default function CsvToJsonConverter() {
+export default function CsvToJsonConverter({ size = "md", ...buttonProps }) {
     const fileInputRef = useRef();
 
     const handleFileUpload = (event) => {
@@ -204,6 +204,8 @@ export default function CsvToJsonConverter() {
                 colorScheme="blue"
                 leftIcon={<DownloadIcon />}
                 onClick={() => fileInputRef.current.click()}
+                size={size}
+                {...buttonProps}
             >
                 Convert CSV to JSON
             </Button>

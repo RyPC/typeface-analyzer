@@ -273,9 +273,22 @@ export default function Dashboard({
             >
                 {view === "municipality" ? (
                     <>
-                        <Heading size="lg" mb={4} textAlign="center">
-                            Typography Analysis of {selectedMunicipality}
-                        </Heading>
+                        <Box 
+                            mb={6} 
+                            pb={4} 
+                            borderBottom="2px solid" 
+                            borderColor="gray.200"
+                            textAlign="center"
+                        >
+                            <Heading 
+                                size="2xl" 
+                                fontWeight="700"
+                                letterSpacing="-0.5px"
+                                color="#000C5C"
+                            >
+                                Typography Analysis of {selectedMunicipality}
+                            </Heading>
+                        </Box>
                         {/* First row */}
                         <Flex direction="row" gap={4} mb={4}>
                             {/* Typeface Data */}
@@ -606,13 +619,31 @@ export default function Dashboard({
                         </Flex>
                     </>
                 ) : (
-                    <Box h="calc(100vh - 200px)">
-                        <MapView
-                            feature={feature}
-                            subFeature={subFeature}
-                            view={view}
-                        />
-                    </Box>
+                    <>
+                        <Box 
+                            mb={6} 
+                            pb={4} 
+                            borderBottom="2px solid" 
+                            borderColor="gray.200"
+                            textAlign="center"
+                        >
+                            <Heading 
+                                size="2xl" 
+                                fontWeight="700"
+                                letterSpacing="-0.5px"
+                                color="#000C5C"
+                            >
+                                Geographic Map View
+                            </Heading>
+                        </Box>
+                        <Box h="calc(100vh - 200px)">
+                            <MapView
+                                feature={feature}
+                                subFeature={subFeature}
+                                view={view}
+                            />
+                        </Box>
+                    </>
                 )}
             </Flex>
         </Box>

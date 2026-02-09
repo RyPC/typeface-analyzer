@@ -6,31 +6,27 @@ import {
     Text,
     Spinner,
     useToast,
-    Select,
     HStack,
     useDisclosure,
     Modal,
     ModalOverlay,
     ModalContent,
     ModalBody,
-    Progress,
     VStack,
     Input,
     InputGroup,
     InputLeftElement,
+    Badge,
+    Divider,
 } from "@chakra-ui/react";
-import { AttachmentIcon, SearchIcon } from "@chakra-ui/icons";
+import { SearchIcon, CloseIcon } from "@chakra-ui/icons";
 import PhotoDetailsModal from "./PhotoDetailsModal";
 import PhotoTable from "./components/PhotoTable";
 import Pagination from "./components/Pagination";
+import FilterModal from "./FilterModal";
+import PageHeader from "./components/PageHeader";
 
 const API_URL = process.env.REACT_APP_API_URL;
-
-const FILTER_TYPES = [
-    { value: "status", label: "Status" },
-    { value: "municipality", label: "Municipality" },
-    { value: "initials", label: "Initials" },
-];
 
 export default function TableView({ onOpen }) {
     const [data, setData] = useState([]);
@@ -39,14 +35,18 @@ export default function TableView({ onOpen }) {
     const [totalPages, setTotalPages] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
     const [sortOrder, setSortOrder] = useState("asc");
-    const [filterType, setFilterType] = useState("");
-    const [filterValue, setFilterValue] = useState("");
+    const [filters, setFilters] = useState([]); // Array of {type, value} objects
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedPhoto, setSelectedPhoto] = useState(null);
     const {
         isOpen: isModalOpen,
         onOpen: onModalOpen,
         onClose: onModalClose,
+    } = useDisclosure();
+    const {
+        isOpen: isFilterModalOpen,
+        onOpen: onFilterModalOpen,
+        onClose: onFilterModalClose,
     } = useDisclosure();
     const [filterOptions, setFilterOptions] = useState({
         municipalities: [],
@@ -80,6 +80,7 @@ export default function TableView({ onOpen }) {
         };
 
         fetchFilterOptions();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchData = async (page) => {
@@ -89,9 +90,19 @@ export default function TableView({ onOpen }) {
                 page,
                 limit: 20,
                 sortOrder,
-                ...(filterType && filterValue && { filterType, filterValue }),
                 ...(searchTerm && { search: searchTerm }),
             });
+
+            // Add filters as JSON-encoded string
+            if (filters.length > 0) {
+                const activeFilters = filters.filter((f) => f.type && f.value);
+                if (activeFilters.length > 0) {
+                    queryParams.append(
+                        "filters",
+                        JSON.stringify(activeFilters)
+                    );
+                }
+            }
 
             const response = await fetch(
                 `${API_URL}/api/table-data?${queryParams}`
@@ -117,7 +128,8 @@ export default function TableView({ onOpen }) {
 
     useEffect(() => {
         fetchData(currentPage);
-    }, [currentPage, sortOrder, filterType, filterValue, searchTerm]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentPage, sortOrder, filters, searchTerm]);
 
     const handlePreviousPage = () => {
         if (currentPage > 1) {
@@ -135,28 +147,21 @@ export default function TableView({ onOpen }) {
         setSortOrder(sortOrder === "desc" ? "asc" : "desc");
     };
 
-    const handleFilterTypeChange = (e) => {
-        setFilterType(e.target.value);
-        setFilterValue("");
+    const handleApplyFilters = (newFilters) => {
+        setFilters(newFilters);
         setCurrentPage(1);
     };
 
-    const handleFilterValueChange = (e) => {
-        setFilterValue(e.target.value);
+    const handleRemoveFilter = (filterToRemove) => {
+        const newFilters = filters.filter(
+            (f) =>
+                !(
+                    f.type === filterToRemove.type &&
+                    f.value === filterToRemove.value
+                )
+        );
+        setFilters(newFilters);
         setCurrentPage(1);
-    };
-
-    const getFilterOptions = () => {
-        switch (filterType) {
-            case "municipality":
-                return filterOptions.municipalities;
-            case "initials":
-                return filterOptions.initials;
-            case "status":
-                return filterOptions.statuses;
-            default:
-                return [];
-        }
     };
 
     const handleRowClick = (photo) => {
@@ -258,7 +263,7 @@ export default function TableView({ onOpen }) {
     }
 
     return (
-        <Box p={4}>
+        <VStack align="stretch" w="full" h="100%" spacing={0} overflow="hidden">
             {/* Import Progress Modal */}
             <Modal
                 isOpen={isImporting}
@@ -278,62 +283,103 @@ export default function TableView({ onOpen }) {
                 </ModalContent>
             </Modal>
 
-            <Flex justify="space-between" align="center" mb={4}>
-                <Text fontSize="2xl">Photo Table View</Text>
-            </Flex>
+            {/* Top Bar */}
+            <PageHeader title="Photo Table View">
+                {/* Search Input */}
+                <Box flex={1} minW="250px">
+                    <InputGroup>
+                        <InputLeftElement pointerEvents="none">
+                            <SearchIcon color="gray.300" />
+                        </InputLeftElement>
+                        <Input
+                            placeholder="Search photos by ID, municipality, initials..."
+                            value={searchTerm}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                        />
+                    </InputGroup>
+                </Box>
 
-            <Text fontSize="md" color="gray.600" mb={4}>
-                {totalCount} {totalCount === 1 ? "photo" : "photos"} found
-                {filterType &&
-                    filterValue &&
-                    ` with ${filterType} "${filterValue}"`}
-                {searchTerm && ` matching "${searchTerm}"`}
-            </Text>
+                <Divider
+                    orientation="vertical"
+                    height="40px"
+                    borderColor="gray.300"
+                />
 
-            <VStack spacing={4} mb={4} align="stretch">
-                <InputGroup>
-                    <InputLeftElement pointerEvents="none">
-                        <SearchIcon color="gray.300" />
-                    </InputLeftElement>
-                    <Input
-                        placeholder="Search photos by ID, municipality, initials..."
-                        value={searchTerm}
-                        onChange={(e) => {
-                            setSearchTerm(e.target.value);
-                            setCurrentPage(1);
-                        }}
-                    />
-                </InputGroup>
-
-                <HStack spacing={4}>
-                    <Select
-                        placeholder="Filter by"
-                        value={filterType}
-                        onChange={handleFilterTypeChange}
-                        width="200px"
+                {/* Filter Button */}
+                <HStack spacing={2}>
+                    <Button
+                        onClick={onFilterModalOpen}
+                        size="sm"
+                        variant={filters.length > 0 ? "solid" : "outline"}
+                        colorScheme={filters.length > 0 ? "blue" : "gray"}
                     >
-                        {FILTER_TYPES.map((type) => (
-                            <option key={type.value} value={type.value}>
-                                {type.label}
-                            </option>
-                        ))}
-                    </Select>
-                    {filterType && (
-                        <Select
-                            placeholder="Select value"
-                            value={filterValue}
-                            onChange={handleFilterValueChange}
-                            width="200px"
-                        >
-                            {getFilterOptions().map((value) => (
-                                <option key={value} value={value}>
-                                    {value}
-                                </option>
-                            ))}
-                        </Select>
-                    )}
+                        Filters
+                        {filters.length > 0 && (
+                            <Badge ml={2} colorScheme="gray">
+                                {filters.length}
+                            </Badge>
+                        )}
+                    </Button>
                 </HStack>
-            </VStack>
+
+                {/* Active Filter Badges */}
+                {filters.length > 0 && (
+                    <>
+                        <Divider
+                            orientation="vertical"
+                            height="40px"
+                            borderColor="gray.300"
+                        />
+                        <HStack wrap="wrap" spacing={2}>
+                            {filters.map((filter, index) => (
+                                <Badge
+                                    key={index}
+                                    as="button"
+                                    colorScheme="gray"
+                                    px={2}
+                                    py={1}
+                                    fontSize="xs"
+                                    display="flex"
+                                    alignItems="center"
+                                    gap={1}
+                                    cursor="pointer"
+                                    onClick={() => handleRemoveFilter(filter)}
+                                    transition="all 0.2s"
+                                    _hover={{
+                                        bg: "gray.400",
+                                        color: "white",
+                                    }}
+                                    aria-label={`Remove ${filter.type} filter`}
+                                >
+                                    {filter.type}: {filter.value}
+                                    <CloseIcon w={2} h={2} ml={1} />
+                                </Badge>
+                            ))}
+                        </HStack>
+                    </>
+                )}
+            </PageHeader>
+
+            {/* Content Area */}
+            <Box
+                flex={1}
+                overflowY="auto"
+                p={4}
+                backgroundColor="rgba(255, 255, 255, 0.05)"
+                backdropFilter="blur(10px)"
+                boxShadow="inset 0 4px 12px rgba(0, 0, 0, 0.05)"
+            >
+                <Text fontSize="md" color="gray.600" mb={4}>
+                    {totalCount} {totalCount === 1 ? "photo" : "photos"} found
+                    {filters.length > 0 &&
+                        ` with ${filters.length} filter${
+                            filters.length !== 1 ? "s" : ""
+                        } applied`}
+                    {searchTerm && ` matching "${searchTerm}"`}
+                </Text>
 
             <PhotoTable
                 data={data}
@@ -355,6 +401,15 @@ export default function TableView({ onOpen }) {
                 onClose={onModalClose}
                 photo={selectedPhoto}
             />
-        </Box>
+
+            <FilterModal
+                isOpen={isFilterModalOpen}
+                onClose={onFilterModalClose}
+                filters={filters}
+                onApplyFilters={handleApplyFilters}
+                filterOptions={filterOptions}
+            />
+            </Box>
+        </VStack>
     );
 }
