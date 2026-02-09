@@ -900,12 +900,12 @@ export default function AddModal({
                                         e.target.style.display = "none";
                                     }}
                                 />
-                                
+
                                 {/* Photo Details Display */}
                                 {photo && (
                                     <VStack spacing={4} align="stretch" mt={4}>
                                         <Divider />
-                                        
+
                                         {/* Basic Info */}
                                         <Box>
                                             <Text fontWeight="bold" mb={2}>
@@ -915,23 +915,43 @@ export default function AddModal({
                                                 <>
                                                     <HStack spacing={4}>
                                                         <Badge colorScheme="blue">
-                                                            {selectedPhoto.status || "Unknown status"}
+                                                            {selectedPhoto.status ||
+                                                                "Unknown status"}
                                                         </Badge>
-                                                        <Text>ID: {selectedPhoto.custom_id}</Text>
+                                                        <Text>
+                                                            ID:{" "}
+                                                            {
+                                                                selectedPhoto.custom_id
+                                                            }
+                                                        </Text>
                                                     </HStack>
                                                     {selectedPhoto.initials && (
-                                                        <Text mt={2}>Initials: {selectedPhoto.initials}</Text>
+                                                        <Text mt={2}>
+                                                            Initials:{" "}
+                                                            {
+                                                                selectedPhoto.initials
+                                                            }
+                                                        </Text>
                                                     )}
                                                     <Text>
                                                         Last Updated:{" "}
                                                         {selectedPhoto.lastUpdated
-                                                            ? new Date(selectedPhoto.lastUpdated).toLocaleString()
+                                                            ? new Date(
+                                                                  selectedPhoto.lastUpdated
+                                                              ).toLocaleString()
                                                             : "N/A"}
                                                     </Text>
                                                 </>
                                             )}
-                                            <Text mt={isEditMode && selectedPhoto ? 2 : 0}>
-                                                Municipality: {municipality || "Not set"}
+                                            <Text
+                                                mt={
+                                                    isEditMode && selectedPhoto
+                                                        ? 2
+                                                        : 0
+                                                }
+                                            >
+                                                Municipality:{" "}
+                                                {municipality || "Not set"}
                                             </Text>
                                         </Box>
 
@@ -939,118 +959,155 @@ export default function AddModal({
 
                                         {/* Substrates */}
                                         {substrates &&
-                                            substrates.map((substrate, index) => (
-                                                <Box key={index}>
-                                                    <Text fontWeight="bold" mb={2}>
-                                                        Substrate {index + 1}
-                                                    </Text>
-                                                    <Text>
-                                                        Placement: {substrate.placement || "Not set"}
-                                                    </Text>
-                                                    {substrate.additionalNotes && (
-                                                        <Text whiteSpace="pre-wrap">
-                                                            Notes: {substrate.additionalNotes}
+                                            substrates.map(
+                                                (substrate, index) => (
+                                                    <Box key={index}>
+                                                        <Text
+                                                            fontWeight="bold"
+                                                            mb={2}
+                                                        >
+                                                            Substrate{" "}
+                                                            {index + 1}
                                                         </Text>
-                                                    )}
-                                                    <Text>
-                                                        True Sign:{" "}
-                                                        {substrate.trueSign ? "Yes" : "No"}
-                                                    </Text>
-
-                                                    {substrate.additionalInfo && (
-                                                        <Text whiteSpace="pre-wrap">
-                                                            Additional Info:{" "}
-                                                            {substrate.additionalInfo}
-                                                        </Text>
-                                                    )}
-
-                                                    {/* Typefaces */}
-                                                    {substrate.typefaces &&
-                                                        substrate.typefaces.map(
-                                                            (typeface, tIndex) => (
-                                                                <Box
-                                                                    key={tIndex}
-                                                                    mt={2}
-                                                                    pl={4}
-                                                                    borderLeft="2px solid"
-                                                                    borderColor="gray.200"
-                                                                >
-                                                                    <Text fontWeight="bold">
-                                                                        Typeface {tIndex + 1}
-                                                                    </Text>
-                                                                    <Text>
-                                                                        Style:{" "}
-                                                                        {Array.isArray(
-                                                                            typeface.typefaceStyle
-                                                                        )
-                                                                            ? typeface.typefaceStyle.join(
-                                                                                  ", "
-                                                                              )
-                                                                            : typeface.typefaceStyle || "Not set"}
-                                                                    </Text>
-                                                                    <Text>
-                                                                        Text:{" "}
-                                                                        <Text
-                                                                            as="span"
-                                                                            fontStyle="italic"
-                                                                            fontWeight="medium"
-                                                                            whiteSpace="pre-wrap"
-                                                                            display="block"
-                                                                        >
-                                                                            "{typeface.text || "Not set"}"
-                                                                        </Text>
-                                                                    </Text>
-                                                                    <Text>
-                                                                        Lettering Ontology:{" "}
-                                                                        {Array.isArray(
-                                                                            typeface.letteringOntology
-                                                                        )
-                                                                            ? typeface.letteringOntology.join(
-                                                                                  ", "
-                                                                              )
-                                                                            : typeface.letteringOntology || "Not set"}
-                                                                    </Text>
-                                                                    <Text>
-                                                                        Message Function:{" "}
-                                                                        {Array.isArray(
-                                                                            typeface.messageFunction
-                                                                        )
-                                                                            ? typeface.messageFunction.join(
-                                                                                  ", "
-                                                                              )
-                                                                            : typeface.messageFunction || "Not set"}
-                                                                    </Text>
-                                                                    <Text>
-                                                                        COVID Related:{" "}
-                                                                        {typeface.covidRelated
-                                                                            ? "Yes"
-                                                                            : "No"}
-                                                                    </Text>
-                                                                    {typeface.additionalNotes && (
-                                                                        <Text whiteSpace="pre-wrap">
-                                                                            Notes:{" "}
-                                                                            {
-                                                                                typeface.additionalNotes
-                                                                            }
-                                                                        </Text>
-                                                                    )}
-                                                                </Box>
-                                                            )
-                                                        )}
-                                                    <br />
-                                                    {substrate.confidence && (
                                                         <Text>
-                                                            Confidence: {substrate.confidence}
+                                                            Placement:{" "}
+                                                            {substrate.placement ||
+                                                                "Not set"}
                                                         </Text>
-                                                    )}
-                                                    {substrate.confidenceReasoning && (
-                                                        <Text whiteSpace="pre-wrap">
-                                                            Confidence Reasoning:{" "}
-                                                            {substrate.confidenceReasoning}
+                                                        {substrate.additionalNotes && (
+                                                            <Text whiteSpace="pre-wrap">
+                                                                Notes:{" "}
+                                                                {
+                                                                    substrate.additionalNotes
+                                                                }
+                                                            </Text>
+                                                        )}
+                                                        <Text>
+                                                            True Sign:{" "}
+                                                            {substrate.trueSign
+                                                                ? "Yes"
+                                                                : "No"}
                                                         </Text>
-                                                    )}
-                                                </Box>
-                                            ))}
+
+                                                        {substrate.additionalInfo && (
+                                                            <Text whiteSpace="pre-wrap">
+                                                                Additional Info:{" "}
+                                                                {
+                                                                    substrate.additionalInfo
+                                                                }
+                                                            </Text>
+                                                        )}
+
+                                                        {/* Typefaces */}
+                                                        {substrate.typefaces &&
+                                                            substrate.typefaces.map(
+                                                                (
+                                                                    typeface,
+                                                                    tIndex
+                                                                ) => (
+                                                                    <Box
+                                                                        key={
+                                                                            tIndex
+                                                                        }
+                                                                        mt={2}
+                                                                        pl={4}
+                                                                        borderLeft="2px solid"
+                                                                        borderColor="gray.200"
+                                                                    >
+                                                                        <Text fontWeight="bold">
+                                                                            Typeface{" "}
+                                                                            {tIndex +
+                                                                                1}
+                                                                        </Text>
+                                                                        <Text>
+                                                                            Style:{" "}
+                                                                            {Array.isArray(
+                                                                                typeface.typefaceStyle
+                                                                            )
+                                                                                ? typeface.typefaceStyle.join(
+                                                                                      ", "
+                                                                                  )
+                                                                                : typeface.typefaceStyle ||
+                                                                                  "Not set"}
+                                                                        </Text>
+                                                                        <Text>
+                                                                            Text:{" "}
+                                                                            <Text
+                                                                                as="span"
+                                                                                fontStyle="italic"
+                                                                                fontWeight="medium"
+                                                                                whiteSpace="pre-wrap"
+                                                                                display="block"
+                                                                            >
+                                                                                "
+                                                                                {typeface.text ||
+                                                                                    "Not set"}
+                                                                                "
+                                                                            </Text>
+                                                                        </Text>
+                                                                        <Text>
+                                                                            Lettering
+                                                                            Ontology:{" "}
+                                                                            {Array.isArray(
+                                                                                typeface.letteringOntology
+                                                                            )
+                                                                                ? typeface.letteringOntology.join(
+                                                                                      ", "
+                                                                                  )
+                                                                                : typeface.letteringOntology ||
+                                                                                  "Not set"}
+                                                                        </Text>
+                                                                        <Text>
+                                                                            Message
+                                                                            Function:{" "}
+                                                                            {Array.isArray(
+                                                                                typeface.messageFunction
+                                                                            )
+                                                                                ? typeface.messageFunction.join(
+                                                                                      ", "
+                                                                                  )
+                                                                                : typeface.messageFunction ||
+                                                                                  "Not set"}
+                                                                        </Text>
+                                                                        <Text>
+                                                                            COVID
+                                                                            Related:{" "}
+                                                                            {typeface.covidRelated
+                                                                                ? "Yes"
+                                                                                : "No"}
+                                                                        </Text>
+                                                                        {typeface.additionalNotes && (
+                                                                            <Text whiteSpace="pre-wrap">
+                                                                                Notes:{" "}
+                                                                                {
+                                                                                    typeface.additionalNotes
+                                                                                }
+                                                                            </Text>
+                                                                        )}
+                                                                    </Box>
+                                                                )
+                                                            )}
+                                                        <br />
+                                                        {substrate.confidence && (
+                                                            <Text>
+                                                                Confidence:{" "}
+                                                                {
+                                                                    substrate.confidence
+                                                                }
+                                                            </Text>
+                                                        )}
+                                                        {substrate.confidenceReasoning && (
+                                                            <Text whiteSpace="pre-wrap">
+                                                                Confidence
+                                                                Reasoning:{" "}
+                                                                {
+                                                                    substrate.confidenceReasoning
+                                                                }
+                                                            </Text>
+                                                        )}
+                                                    </Box>
+                                                )
+                                            )}
                                     </VStack>
                                 )}
                             </Box>

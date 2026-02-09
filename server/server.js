@@ -602,19 +602,19 @@ app.get("/api/table-data", async (req, res) => {
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
         const sortOrder = req.query.sortOrder === "desc" ? -1 : 1;
-        
+
         // Support legacy single filter for backward compatibility
         const filterType = req.query.filterType;
         const filterValue = req.query.filterValue;
 
         // Build filter query
         let query = {};
-        
+
         // Handle legacy single filter
         if (filterType && filterValue) {
             query[filterType] = filterValue;
         }
-        
+
         // Handle multiple filters (new approach)
         // Parse filters from JSON-encoded query parameter
         if (req.query.filters) {
