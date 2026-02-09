@@ -53,6 +53,7 @@ export const PLACEMENTS = [
     "Infrastructure",
     "Memorial",
     "Sticker",
+    "Other",
 ];
 export const MESSAGE_FUNCTIONS = [
     "Identification",
@@ -69,4 +70,5 @@ export const MESSAGE_FUNCTIONS = [
     "Wayfinding",
     "Infrastructure",
     "Covid-related",
+    "Other",
 ];
