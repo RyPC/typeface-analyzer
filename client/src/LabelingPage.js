@@ -714,7 +714,7 @@ export default function LabelingPage({ user }) {
                             data={claimedData}
                             sortOrder={sortOrder}
                             onSortToggle={toggleSortOrder}
-                            onRowClick={handleViewPhoto}
+                            onRowClick={(photo) => handleEditPhoto(photo)}
                             actionButtons={(item) => (
                                 <>
                                     <Tooltip label="Edit/Label this photo">
