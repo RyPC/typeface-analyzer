@@ -174,12 +174,6 @@ export default function MapView({ feature, subFeature, view }) {
 
     useEffect(() => {
         if (!map.current || !mapData || !geoJsonData) {
-            console.log("Early return conditions:", {
-                hasMap: !!map.current,
-                hasData: !!mapData,
-                hasGeoJson: !!geoJsonData,
-                view,
-            });
             return;
         }
 

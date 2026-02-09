@@ -442,10 +442,6 @@ export default function AddModal({
                 // This ensures we skip the upload step and go directly to the form
                 // Always construct S3 URL from custom_id
                 const s3Url = `https://typeface-s3-photo-bucket.s3.us-west-1.amazonaws.com/Font+Census+Data/${selectedPhoto.custom_id}`;
-                console.log(
-                    `Client: Constructing S3 URL from custom_id for ${selectedPhoto.custom_id}:`,
-                    s3Url
-                );
                 setPhotoPreview(s3Url);
                 setPhoto({ name: selectedPhoto.custom_id || "photo.jpg" });
             } else {
@@ -546,8 +542,6 @@ export default function AddModal({
                         },
                     ]);
                 }
-
-                console.log(data.formData);
             }
         } catch (err) {
             setError(err.message);
@@ -882,9 +876,6 @@ export default function AddModal({
             } else {
                 // For new photos, keep the existing behavior (batch data)
                 // This would typically create a new photo entry
-                console.log("New photo submission:", {
-                    substrates: substrates,
-                });
             }
 
             closeModal();

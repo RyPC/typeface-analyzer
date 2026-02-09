@@ -21,20 +21,11 @@ export default function PhotoDetailsModal({ isOpen, onClose, photo }) {
 
     useEffect(() => {
         if (photo && isOpen) {
-            console.log("PhotoDetailsModal - Photo data:", photo);
-            console.log("PhotoDetailsModal - custom_id:", photo.custom_id);
-            console.log("PhotoDetailsModal - photoLink:", photo.photoLink);
-
             // Always construct S3 URL from custom_id
             if (photo.custom_id) {
                 const s3Url = `https://typeface-s3-photo-bucket.s3.us-west-1.amazonaws.com/Font+Census+Data/${photo.custom_id}`;
-                console.log(
-                    `Client: Constructing S3 URL from custom_id for ${photo.custom_id}:`,
-                    s3Url
-                );
                 setImageUrl(s3Url);
             } else {
-                console.log("PhotoDetailsModal - No custom_id found");
                 setImageUrl(null);
             }
         } else if (!isOpen) {
@@ -72,10 +63,6 @@ export default function PhotoDetailsModal({ isOpen, onClose, photo }) {
                                                 setImageError(true);
                                             }}
                                             onLoad={() => {
-                                                console.log(
-                                                    "Image loaded successfully:",
-                                                    imageUrl
-                                                );
                                                 setImageError(false);
                                             }}
                                         />

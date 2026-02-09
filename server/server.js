@@ -1124,11 +1124,6 @@ app.get("/api/photos/unclaimed", verifyToken, async (req, res) => {
                 process.env.AWS_REGION || "us-west-1"
             }.amazonaws.com/Font+Census+Data/${photo.custom_id}`;
 
-            console.log(
-                `Constructing S3 URL for photo ${photo.custom_id}:`,
-                constructedUrl
-            );
-
             return {
                 ...photo,
                 photoLink: constructedUrl,
@@ -1190,11 +1185,6 @@ app.get("/api/photos/my-claimed", verifyToken, async (req, res) => {
             const constructedUrl = `https://${S3_BUCKET_NAME}.s3.${
                 process.env.AWS_REGION || "us-west-1"
             }.amazonaws.com/Font+Census+Data/${photo.custom_id}`;
-
-            console.log(
-                `Constructing S3 URL for photo ${photo.custom_id}:`,
-                constructedUrl
-            );
 
             return {
                 ...photo,
