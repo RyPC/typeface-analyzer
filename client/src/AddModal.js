@@ -91,7 +91,7 @@ function TypefaceForm({
             </FormControl>
 
             <FormControl>
-                <FormLabel>Typeface Style</FormLabel>
+                <FormLabel pointerEvents="none">Typeface Style</FormLabel>
                 <CheckboxGroup
                     value={formData.typefaceStyle || []}
                     onChange={(val) =>
@@ -112,7 +112,7 @@ function TypefaceForm({
             </FormControl>
 
             <FormControl>
-                <FormLabel>Lettering Ontology</FormLabel>
+                <FormLabel pointerEvents="none">Lettering Ontology</FormLabel>
                 <CheckboxGroup
                     value={formData.letteringOntology || []}
                     onChange={(val) =>
@@ -133,7 +133,7 @@ function TypefaceForm({
             </FormControl>
 
             <FormControl>
-                <FormLabel>Message Function</FormLabel>
+                <FormLabel pointerEvents="none">Message Function</FormLabel>
                 <CheckboxGroup
                     value={Array.isArray(formData.messageFunction) 
                         ? formData.messageFunction.filter(mf => MESSAGE_FUNCTIONS.includes(mf))
