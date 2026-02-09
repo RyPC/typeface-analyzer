@@ -1,11 +1,5 @@
 // import "./App.css";
-import {
-    Button,
-    Divider,
-    HStack,
-    Select,
-    Text,
-} from "@chakra-ui/react";
+import { Button, Divider, HStack, Select, Text } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import {
     TYPEFACE_STYLES,
@@ -122,9 +116,7 @@ export default function Sidebar({
                             <option value="lettering">
                                 Lettering Ontology
                             </option>
-                            <option value="message">
-                                Message Function
-                            </option>
+                            <option value="message">Message Function</option>
                             <option value="placement">Placement</option>
                             <option value="covid">COVID Related</option>
                         </Select>
@@ -159,10 +151,7 @@ export default function Sidebar({
                                 ))}
                             {feature === "placement" &&
                                 PLACEMENTS.map((placement) => (
-                                    <option
-                                        key={placement}
-                                        value={placement}
-                                    >
+                                    <option key={placement} value={placement}>
                                         {placement}
                                     </option>
                                 ))}
@@ -171,9 +160,7 @@ export default function Sidebar({
                                     <option value="COVID-Related">
                                         COVID-Related
                                     </option>
-                                    <option value="Non-COVID">
-                                        Non-COVID
-                                    </option>
+                                    <option value="Non-COVID">Non-COVID</option>
                                 </>
                             )}
                         </Select>
