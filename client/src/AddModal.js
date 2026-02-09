@@ -51,13 +51,16 @@ const API_URL = process.env.REACT_APP_API_URL;
 
 // Helper function to normalize messageFunction (handle arrays and trim whitespace)
 const normalizeMessageFunction = (value) => {
-    if (!value) return "";
+    if (!value) return [];
     if (Array.isArray(value)) {
-        // If it's an array, take the first element (or join if multiple)
-        const firstValue = value.length > 0 ? value[0] : "";
-        return typeof firstValue === "string" ? firstValue.trim() : firstValue;
+        // Return array with trimmed strings, filtering out empty values
+        return value
+            .map((v) => (typeof v === "string" ? v.trim() : v))
+            .filter((v) => v && v !== "");
     }
-    return typeof value === "string" ? value.trim() : value;
+    // If it's a single string, convert to array
+    const trimmed = typeof value === "string" ? value.trim() : value;
+    return trimmed ? [trimmed] : [];
 };
 
 // TypefaceForm component for adding/editing typefaces
@@ -131,64 +134,125 @@ function TypefaceForm({
 
             <FormControl>
                 <FormLabel>Message Function</FormLabel>
-                <Select
-                    value={
-                        formData.messageFunction &&
-                        MESSAGE_FUNCTIONS.includes(formData.messageFunction)
-                            ? formData.messageFunction
-                            : formData.messageFunction &&
-                              !MESSAGE_FUNCTIONS.includes(
-                                  formData.messageFunction
-                              )
-                            ? "Other"
-                            : formData.messageFunction === "__OTHER__"
-                            ? "Other"
-                            : ""
-                    }
-                    onChange={(e) => {
-                        if (e.target.value === "Other") {
-                            // When "Other" is selected, set a marker value to show the input
-                            onUpdateFormData({
-                                ...formData,
-                                messageFunction: "__OTHER__",
-                            });
-                        } else {
-                            // When a predefined option is selected, use that value
-                            onUpdateFormData({
-                                ...formData,
-                                messageFunction: e.target.value,
-                            });
-                        }
+                <CheckboxGroup
+                    value={Array.isArray(formData.messageFunction) 
+                        ? formData.messageFunction.filter(mf => MESSAGE_FUNCTIONS.includes(mf))
+                        : []}
+                    onChange={(selectedValues) => {
+                        // Get existing custom values (values not in MESSAGE_FUNCTIONS)
+                        const existingCustom = Array.isArray(formData.messageFunction)
+                            ? formData.messageFunction.filter(mf => !MESSAGE_FUNCTIONS.includes(mf))
+                            : [];
+                        // Combine selected predefined values with custom values
+                        onUpdateFormData({
+                            ...formData,
+                            messageFunction: [...selectedValues, ...existingCustom],
+                        });
                     }}
                 >
-                    <option value="">Select...</option>
-                    {MESSAGE_FUNCTIONS.map((m) => (
-                        <option key={m} value={m}>
-                            {m}
-                        </option>
-                    ))}
-                    <option value="Other">Other</option>
-                </Select>
-                {(formData.messageFunction === "__OTHER__" ||
-                    (formData.messageFunction &&
-                        !MESSAGE_FUNCTIONS.includes(formData.messageFunction) &&
-                        formData.messageFunction !== "")) && (
-                    <Input
-                        mt={2}
-                        placeholder="Enter custom message function"
-                        value={
-                            formData.messageFunction === "__OTHER__"
-                                ? ""
+                    <HStack wrap="wrap">
+                        {MESSAGE_FUNCTIONS.map((m) => (
+                            <Checkbox key={m} value={m}>
+                                {m}
+                            </Checkbox>
+                        ))}
+                    </HStack>
+                </CheckboxGroup>
+                {/* Custom message function input */}
+                <VStack spacing={2} mt={3} align="stretch">
+                    <Text fontSize="sm" fontWeight="medium" color="gray.600">
+                        Custom Message Functions:
+                    </Text>
+                    {(() => {
+                        const currentValues = Array.isArray(formData.messageFunction)
+                            ? formData.messageFunction
+                            : formData.messageFunction
+                            ? [formData.messageFunction]
+                            : [];
+                        // Include empty strings so users can add new custom values
+                        const customValues = currentValues.filter((mf) => !MESSAGE_FUNCTIONS.includes(mf));
+                        
+                        return customValues.length > 0 ? (
+                            customValues.map((customMf, index) => (
+                                <HStack key={index}>
+                                    <Input
+                                        value={customMf || ""}
+                                        placeholder="Enter custom message function"
+                                        onChange={(e) => {
+                                            const allValues = Array.isArray(formData.messageFunction)
+                                                ? formData.messageFunction
+                                                : formData.messageFunction
+                                                ? [formData.messageFunction]
+                                                : [];
+                                            const predefined = allValues.filter(mf => MESSAGE_FUNCTIONS.includes(mf));
+                                            const custom = [...allValues.filter(mf => !MESSAGE_FUNCTIONS.includes(mf))];
+                                            custom[index] = e.target.value;
+                                            // Keep empty strings temporarily so user can type, but filter them out on blur/submit
+                                            onUpdateFormData({
+                                                ...formData,
+                                                messageFunction: [...predefined, ...custom],
+                                            });
+                                        }}
+                                        onBlur={(e) => {
+                                            // Remove empty values when user leaves the field
+                                            const allValues = Array.isArray(formData.messageFunction)
+                                                ? formData.messageFunction
+                                                : formData.messageFunction
+                                                ? [formData.messageFunction]
+                                                : [];
+                                            const predefined = allValues.filter(mf => MESSAGE_FUNCTIONS.includes(mf));
+                                            const custom = allValues.filter(mf => !MESSAGE_FUNCTIONS.includes(mf));
+                                            const filteredCustom = custom.filter(v => v && v.trim() !== "");
+                                            onUpdateFormData({
+                                                ...formData,
+                                                messageFunction: [...predefined, ...filteredCustom],
+                                            });
+                                        }}
+                                    />
+                                    <IconButton
+                                        icon={<DeleteIcon />}
+                                        size="sm"
+                                        colorScheme="red"
+                                        aria-label="Remove custom message function"
+                                        onClick={() => {
+                                            const allValues = Array.isArray(formData.messageFunction)
+                                                ? formData.messageFunction
+                                                : formData.messageFunction
+                                                ? [formData.messageFunction]
+                                                : [];
+                                            const predefined = allValues.filter(mf => MESSAGE_FUNCTIONS.includes(mf));
+                                            const custom = allValues.filter(mf => !MESSAGE_FUNCTIONS.includes(mf));
+                                            custom.splice(index, 1);
+                                            onUpdateFormData({
+                                                ...formData,
+                                                messageFunction: [...predefined, ...custom],
+                                            });
+                                        }}
+                                    />
+                                </HStack>
+                            ))
+                        ) : null;
+                    })()}
+                    <Button
+                        size="sm"
+                        leftIcon={<AddIcon />}
+                        variant="outline"
+                        onClick={() => {
+                            const currentValues = Array.isArray(formData.messageFunction)
+                                ? formData.messageFunction
                                 : formData.messageFunction
-                        }
-                        onChange={(e) =>
+                                ? [formData.messageFunction]
+                                : [];
+                            // Add empty string temporarily - it will show as an input field
                             onUpdateFormData({
                                 ...formData,
-                                messageFunction: e.target.value,
-                            })
-                        }
-                    />
-                )}
+                                messageFunction: [...currentValues, ""],
+                            });
+                        }}
+                    >
+                        Add Custom Message Function
+                    </Button>
+                </VStack>
             </FormControl>
 
             <FormControl>
@@ -608,7 +672,7 @@ export default function AddModal({
                 typefaceStyle: [],
                 text: "",
                 letteringOntology: [],
-                messageFunction: "",
+                messageFunction: [],
                 covidRelated: false,
                 additionalNotes: "",
             }
@@ -662,7 +726,7 @@ export default function AddModal({
                 typefaceStyle: [],
                 text: "",
                 letteringOntology: [],
-                messageFunction: "",
+                messageFunction: [],
                 covidRelated: false,
                 additionalNotes: "",
             });
@@ -725,7 +789,7 @@ export default function AddModal({
             typefaceStyle: [],
             text: "",
             letteringOntology: [],
-            messageFunction: "",
+            messageFunction: [],
             covidRelated: false,
             additionalNotes: "",
         });
@@ -737,7 +801,7 @@ export default function AddModal({
             typefaceStyle: [],
             text: "",
             letteringOntology: [],
-            messageFunction: "",
+            messageFunction: [],
             covidRelated: false,
             additionalNotes: "",
         });
@@ -773,10 +837,10 @@ export default function AddModal({
                             typefaceStyle: tf.typefaceStyle,
                             copy: tf.text,
                             letteringOntology: tf.letteringOntology,
-                            messageFunction: tf.messageFunction
-                                ? Array.isArray(tf.messageFunction)
-                                    ? tf.messageFunction
-                                    : [tf.messageFunction]
+                            messageFunction: Array.isArray(tf.messageFunction)
+                                ? tf.messageFunction.filter(mf => mf && mf.trim() !== "")
+                                : tf.messageFunction && tf.messageFunction.trim() !== ""
+                                ? [tf.messageFunction]
                                 : [],
                             covidRelated: tf.covidRelated,
                             additionalNotes: tf.additionalNotes,
@@ -900,12 +964,12 @@ export default function AddModal({
                                         e.target.style.display = "none";
                                     }}
                                 />
-
+                                
                                 {/* Photo Details Display */}
                                 {photo && (
                                     <VStack spacing={4} align="stretch" mt={4}>
                                         <Divider />
-
+                                        
                                         {/* Basic Info */}
                                         <Box>
                                             <Text fontWeight="bold" mb={2}>
@@ -915,43 +979,23 @@ export default function AddModal({
                                                 <>
                                                     <HStack spacing={4}>
                                                         <Badge colorScheme="blue">
-                                                            {selectedPhoto.status ||
-                                                                "Unknown status"}
+                                                            {selectedPhoto.status || "Unknown status"}
                                                         </Badge>
-                                                        <Text>
-                                                            ID:{" "}
-                                                            {
-                                                                selectedPhoto.custom_id
-                                                            }
-                                                        </Text>
+                                                        <Text>ID: {selectedPhoto.custom_id}</Text>
                                                     </HStack>
                                                     {selectedPhoto.initials && (
-                                                        <Text mt={2}>
-                                                            Initials:{" "}
-                                                            {
-                                                                selectedPhoto.initials
-                                                            }
-                                                        </Text>
+                                                        <Text mt={2}>Initials: {selectedPhoto.initials}</Text>
                                                     )}
                                                     <Text>
                                                         Last Updated:{" "}
                                                         {selectedPhoto.lastUpdated
-                                                            ? new Date(
-                                                                  selectedPhoto.lastUpdated
-                                                              ).toLocaleString()
+                                                            ? new Date(selectedPhoto.lastUpdated).toLocaleString()
                                                             : "N/A"}
                                                     </Text>
                                                 </>
                                             )}
-                                            <Text
-                                                mt={
-                                                    isEditMode && selectedPhoto
-                                                        ? 2
-                                                        : 0
-                                                }
-                                            >
-                                                Municipality:{" "}
-                                                {municipality || "Not set"}
+                                            <Text mt={isEditMode && selectedPhoto ? 2 : 0}>
+                                                Municipality: {municipality || "Not set"}
                                             </Text>
                                         </Box>
 
@@ -959,155 +1003,118 @@ export default function AddModal({
 
                                         {/* Substrates */}
                                         {substrates &&
-                                            substrates.map(
-                                                (substrate, index) => (
-                                                    <Box key={index}>
-                                                        <Text
-                                                            fontWeight="bold"
-                                                            mb={2}
-                                                        >
-                                                            Substrate{" "}
-                                                            {index + 1}
+                                            substrates.map((substrate, index) => (
+                                                <Box key={index}>
+                                                    <Text fontWeight="bold" mb={2}>
+                                                        Substrate {index + 1}
+                                                    </Text>
+                                                    <Text>
+                                                        Placement: {substrate.placement || "Not set"}
+                                                    </Text>
+                                                    {substrate.additionalNotes && (
+                                                        <Text whiteSpace="pre-wrap">
+                                                            Notes: {substrate.additionalNotes}
                                                         </Text>
-                                                        <Text>
-                                                            Placement:{" "}
-                                                            {substrate.placement ||
-                                                                "Not set"}
-                                                        </Text>
-                                                        {substrate.additionalNotes && (
-                                                            <Text whiteSpace="pre-wrap">
-                                                                Notes:{" "}
-                                                                {
-                                                                    substrate.additionalNotes
-                                                                }
-                                                            </Text>
-                                                        )}
-                                                        <Text>
-                                                            True Sign:{" "}
-                                                            {substrate.trueSign
-                                                                ? "Yes"
-                                                                : "No"}
-                                                        </Text>
+                                                    )}
+                                                    <Text>
+                                                        True Sign:{" "}
+                                                        {substrate.trueSign ? "Yes" : "No"}
+                                                    </Text>
 
-                                                        {substrate.additionalInfo && (
-                                                            <Text whiteSpace="pre-wrap">
-                                                                Additional Info:{" "}
-                                                                {
-                                                                    substrate.additionalInfo
-                                                                }
-                                                            </Text>
-                                                        )}
+                                                    {substrate.additionalInfo && (
+                                                        <Text whiteSpace="pre-wrap">
+                                                            Additional Info:{" "}
+                                                            {substrate.additionalInfo}
+                                                        </Text>
+                                                    )}
 
-                                                        {/* Typefaces */}
-                                                        {substrate.typefaces &&
-                                                            substrate.typefaces.map(
-                                                                (
-                                                                    typeface,
-                                                                    tIndex
-                                                                ) => (
-                                                                    <Box
-                                                                        key={
-                                                                            tIndex
-                                                                        }
-                                                                        mt={2}
-                                                                        pl={4}
-                                                                        borderLeft="2px solid"
-                                                                        borderColor="gray.200"
-                                                                    >
-                                                                        <Text fontWeight="bold">
-                                                                            Typeface{" "}
-                                                                            {tIndex +
-                                                                                1}
+                                                    {/* Typefaces */}
+                                                    {substrate.typefaces &&
+                                                        substrate.typefaces.map(
+                                                            (typeface, tIndex) => (
+                                                                <Box
+                                                                    key={tIndex}
+                                                                    mt={2}
+                                                                    pl={4}
+                                                                    borderLeft="2px solid"
+                                                                    borderColor="gray.200"
+                                                                >
+                                                                    <Text fontWeight="bold">
+                                                                        Typeface {tIndex + 1}
+                                                                    </Text>
+                                                                    <Text>
+                                                                        Style:{" "}
+                                                                        {Array.isArray(
+                                                                            typeface.typefaceStyle
+                                                                        )
+                                                                            ? typeface.typefaceStyle.join(
+                                                                                  ", "
+                                                                              )
+                                                                            : typeface.typefaceStyle || "Not set"}
+                                                                    </Text>
+                                                                    <Text>
+                                                                        Text:{" "}
+                                                                        <Text
+                                                                            as="span"
+                                                                            fontStyle="italic"
+                                                                            fontWeight="medium"
+                                                                            whiteSpace="pre-wrap"
+                                                                            display="block"
+                                                                        >
+                                                                            "{typeface.text || "Not set"}"
                                                                         </Text>
-                                                                        <Text>
-                                                                            Style:{" "}
-                                                                            {Array.isArray(
-                                                                                typeface.typefaceStyle
-                                                                            )
-                                                                                ? typeface.typefaceStyle.join(
-                                                                                      ", "
-                                                                                  )
-                                                                                : typeface.typefaceStyle ||
-                                                                                  "Not set"}
+                                                                    </Text>
+                                                                    <Text>
+                                                                        Lettering Ontology:{" "}
+                                                                        {Array.isArray(
+                                                                            typeface.letteringOntology
+                                                                        )
+                                                                            ? typeface.letteringOntology.join(
+                                                                                  ", "
+                                                                              )
+                                                                            : typeface.letteringOntology || "Not set"}
+                                                                    </Text>
+                                                                    <Text>
+                                                                        Message Function:{" "}
+                                                                        {Array.isArray(
+                                                                            typeface.messageFunction
+                                                                        )
+                                                                            ? typeface.messageFunction.join(
+                                                                                  ", "
+                                                                              )
+                                                                            : typeface.messageFunction || "Not set"}
+                                                                    </Text>
+                                                                    <Text>
+                                                                        COVID Related:{" "}
+                                                                        {typeface.covidRelated
+                                                                            ? "Yes"
+                                                                            : "No"}
+                                                                    </Text>
+                                                                    {typeface.additionalNotes && (
+                                                                        <Text whiteSpace="pre-wrap">
+                                                                            Notes:{" "}
+                                                                            {
+                                                                                typeface.additionalNotes
+                                                                            }
                                                                         </Text>
-                                                                        <Text>
-                                                                            Text:{" "}
-                                                                            <Text
-                                                                                as="span"
-                                                                                fontStyle="italic"
-                                                                                fontWeight="medium"
-                                                                                whiteSpace="pre-wrap"
-                                                                                display="block"
-                                                                            >
-                                                                                "
-                                                                                {typeface.text ||
-                                                                                    "Not set"}
-                                                                                "
-                                                                            </Text>
-                                                                        </Text>
-                                                                        <Text>
-                                                                            Lettering
-                                                                            Ontology:{" "}
-                                                                            {Array.isArray(
-                                                                                typeface.letteringOntology
-                                                                            )
-                                                                                ? typeface.letteringOntology.join(
-                                                                                      ", "
-                                                                                  )
-                                                                                : typeface.letteringOntology ||
-                                                                                  "Not set"}
-                                                                        </Text>
-                                                                        <Text>
-                                                                            Message
-                                                                            Function:{" "}
-                                                                            {Array.isArray(
-                                                                                typeface.messageFunction
-                                                                            )
-                                                                                ? typeface.messageFunction.join(
-                                                                                      ", "
-                                                                                  )
-                                                                                : typeface.messageFunction ||
-                                                                                  "Not set"}
-                                                                        </Text>
-                                                                        <Text>
-                                                                            COVID
-                                                                            Related:{" "}
-                                                                            {typeface.covidRelated
-                                                                                ? "Yes"
-                                                                                : "No"}
-                                                                        </Text>
-                                                                        {typeface.additionalNotes && (
-                                                                            <Text whiteSpace="pre-wrap">
-                                                                                Notes:{" "}
-                                                                                {
-                                                                                    typeface.additionalNotes
-                                                                                }
-                                                                            </Text>
-                                                                        )}
-                                                                    </Box>
-                                                                )
-                                                            )}
-                                                        <br />
-                                                        {substrate.confidence && (
-                                                            <Text>
-                                                                Confidence:{" "}
-                                                                {
-                                                                    substrate.confidence
-                                                                }
-                                                            </Text>
+                                                                    )}
+                                                                </Box>
+                                                            )
                                                         )}
-                                                        {substrate.confidenceReasoning && (
-                                                            <Text whiteSpace="pre-wrap">
-                                                                Confidence
-                                                                Reasoning:{" "}
-                                                                {
-                                                                    substrate.confidenceReasoning
-                                                                }
-                                                            </Text>
-                                                        )}
-                                                    </Box>
-                                                )
-                                            )}
+                                                    <br />
+                                                    {substrate.confidence && (
+                                                        <Text>
+                                                            Confidence: {substrate.confidence}
+                                                        </Text>
+                                                    )}
+                                                    {substrate.confidenceReasoning && (
+                                                        <Text whiteSpace="pre-wrap">
+                                                            Confidence Reasoning:{" "}
+                                                            {substrate.confidenceReasoning}
+                                                        </Text>
+                                                    )}
+                                                </Box>
+                                            ))}
                                     </VStack>
                                 )}
                             </Box>
