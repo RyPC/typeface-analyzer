@@ -1,21 +1,11 @@
 import "./App.css";
 import {
     Box,
-    Heading,
-    HStack,
-    VStack,
-    Button,
-    Flex,
-    useDisclosure,
-    Text,
-    Avatar,
-    Menu,
-    MenuButton,
-    MenuList,
-    MenuItem,
-    MenuDivider,
     Spinner,
     Center,
+    VStack,
+    Text,
+    useDisclosure,
 } from "@chakra-ui/react";
 import Dashboard from "./Dashboard.js";
 import Sidebar from "./Sidebar.js";
@@ -23,8 +13,10 @@ import TableView from "./TableView.js";
 import LabelingPage from "./LabelingPage.js";
 import { useEffect, useState } from "react";
 import AddModal from "./AddModal.js";
-import { SettingsIcon, InfoIcon, ChevronDownIcon } from "@chakra-ui/icons";
 import Login from "./Login.js";
+import Layout from "./Layout.js";
+import ProtectedRoute from "./ProtectedRoute.js";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -36,7 +28,6 @@ export default function App() {
     const [photoCount, setPhotoCount] = useState(0);
     const { isOpen, onOpen, onClose } = useDisclosure();
 
-    const [currentPage, setCurrentPage] = useState("dashboard"); // "dashboard", "labeling", "table"
     const [view, setView] = useState("municipality"); // "municipality" or "map"
     const [selectedMunicipality, setSelectedMunicipality] =
         useState("All Municipalities");
@@ -135,6 +126,53 @@ export default function App() {
         }
     };
 
+    // Dashboard Page Component
+    const DashboardPage = () => (
+        <VStack align="stretch" w="full" h="100%" spacing={0} overflow="hidden">
+            <Box px={4} pt={4} flexShrink={0}>
+                <Sidebar
+                    onOpen={onOpen}
+                    view={view}
+                    setView={setView}
+                    municipality={selectedMunicipality}
+                    setMunicipality={setSelectedMunicipality}
+                    feature={selectedFeature}
+                    setFeature={setSelectedFeature}
+                    subFeature={selectedSubFeature}
+                    setSubFeature={setSelectedSubFeature}
+                    photoCount={photoCount}
+                />
+            </Box>
+            <Box
+                flex={1}
+                overflowY="auto"
+                p={4}
+                backgroundColor="rgba(255, 255, 255, 0.05)"
+                backdropFilter="blur(10px)"
+                boxShadow="inset 0 4px 12px rgba(0, 0, 0, 0.05)"
+            >
+                <Dashboard
+                    view={view}
+                    selectedMunicipality={selectedMunicipality}
+                    feature={selectedFeature}
+                    subFeature={selectedSubFeature}
+                />
+            </Box>
+            <AddModal isOpen={isOpen} onClose={onClose} />
+        </VStack>
+    );
+
+    // Table View Page Component
+    const TablePage = () => (
+        <VStack align="stretch" w="full" h="100%" spacing={0} overflow="hidden">
+            <TableView onOpen={onOpen} />
+            <AddModal isOpen={isOpen} onClose={onClose} />
+        </VStack>
+    );
+
+    // Labeling Page Component
+    const LabelingPageComponent = () => <LabelingPage user={user} />;
+
     if (isLoading) {
         return (
             <Box
@@ -160,241 +198,69 @@ export default function App() {
         );
     }
 
-    if (!isAuthenticated) {
-        return <Login onLogin={handleLogin} />;
-    }
-
     return (
-        <Box
-            fontFamily="Inter, sans-serif"
-            h="100vh"
-            backgroundColor="#A5B2CE"
-            bgGradient="linear(to-b, #A5B2CE, #8D9BB8)"
-            overflow="hidden"
-        >
-            <VStack height="100%" direction="column" spacing={0}>
-                <Box
-                    w="full"
-                    height="120px"
-                    pos="sticky"
-                    top={0}
-                    backgroundColor="#F7ECE7"
-                    boxShadow="0 4px 12px rgba(0, 0, 0, 0.08)"
-                    zIndex="1000"
-                    borderBottom="3px solid #000C5C"
-                >
-                    <Flex
-                        alignItems="center"
-                        justifyContent="space-between"
-                        h="full"
-                        px={10}
-                    >
-                        <Flex alignItems="center">
-                            <Box mr={4} color="#000C5C">
-                                <svg
-                                    width="36"
-                                    height="36"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                >
-                                    <path d="M4 7V4h16v3" />
-                                    <path d="M9 20h6" />
-                                    <path d="M12 4v16" />
-                                </svg>
-                            </Box>
-                            <Heading color="#000C5C" size="xl">
-                                Typeface Analysis
-                            </Heading>
-                        </Flex>
-
-                        <Flex alignItems="center">
-                            <HStack spacing={4} mr={4}>
-                                <Button
-                                    variant={
-                                        currentPage === "dashboard"
-                                            ? "solid"
-                                            : "ghost"
-                                    }
-                                    colorScheme={
-                                        currentPage === "dashboard"
-                                            ? "blue"
-                                            : "gray"
-                                    }
-                                    onClick={() => setCurrentPage("dashboard")}
-                                    color={
-                                        currentPage === "dashboard"
-                                            ? "white"
-                                            : "#000C5C"
-                                    }
-                                >
-                                    Dashboard
-                                </Button>
-                                <Button
-                                    variant={
-                                        currentPage === "table"
-                                            ? "solid"
-                                            : "ghost"
-                                    }
-                                    colorScheme={
-                                        currentPage === "table"
-                                            ? "blue"
-                                            : "gray"
-                                    }
-                                    onClick={() => setCurrentPage("table")}
-                                    color={
-                                        currentPage === "table"
-                                            ? "white"
-                                            : "#000C5C"
-                                    }
-                                >
-                                    Table View
-                                </Button>
-                                <Button
-                                    variant={
-                                        currentPage === "labeling"
-                                            ? "solid"
-                                            : "ghost"
-                                    }
-                                    colorScheme={
-                                        currentPage === "labeling"
-                                            ? "blue"
-                                            : "gray"
-                                    }
-                                    onClick={() => setCurrentPage("labeling")}
-                                    color={
-                                        currentPage === "labeling"
-                                            ? "white"
-                                            : "#000C5C"
-                                    }
-                                >
-                                    Labeling
-                                </Button>
-                            </HStack>
-                            <Button
-                                variant="ghost"
-                                mr={2}
-                                color="#000C5C"
-                                _hover={{ bg: "blackAlpha.100" }}
-                            >
-                                <InfoIcon />
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                mr={2}
-                                color="#000C5C"
-                                _hover={{ bg: "blackAlpha.100" }}
-                            >
-                                <SettingsIcon />
-                            </Button>
-                            <Menu>
-                                <MenuButton
-                                    as={Button}
-                                    rightIcon={<ChevronDownIcon />}
-                                    variant="ghost"
-                                    color="#000C5C"
-                                    _hover={{ bg: "blackAlpha.100" }}
-                                >
-                                    <Flex alignItems="center">
-                                        <Avatar
-                                            size="sm"
-                                            name={`${user?.firstName} ${user?.lastName}`}
-                                            mr={2}
-                                        />
-                                        <Text>
-                                            {user?.firstName} {user?.lastName}
-                                        </Text>
-                                    </Flex>
-                                </MenuButton>
-                                <MenuList>
-                                    <MenuItem>Profile</MenuItem>
-                                    <MenuDivider />
-                                    <MenuItem onClick={handleLogout}>
-                                        Logout
-                                    </MenuItem>
-                                </MenuList>
-                            </Menu>
-                        </Flex>
-                    </Flex>
-                </Box>
-
-                {currentPage === "labeling" ? (
-                    <Box
-                        flex={1}
-                        overflowY="auto"
-                        p={4}
-                        borderRadius="15px 0 0 0"
-                        backgroundColor="rgba(255, 255, 255, 0.05)"
-                        backdropFilter="blur(10px)"
-                        boxShadow="inset 0 4px 12px rgba(0, 0, 0, 0.05)"
-                    >
-                        <LabelingPage user={user} />
-                    </Box>
-                ) : currentPage === "table" ? (
-                    <Box
-                        flex={1}
-                        overflowY="auto"
-                        p={4}
-                        borderRadius="15px 0 0 0"
-                        backgroundColor="rgba(255, 255, 255, 0.05)"
-                        backdropFilter="blur(10px)"
-                        boxShadow="inset 0 4px 12px rgba(0, 0, 0, 0.05)"
-                    >
-                        <TableView onOpen={onOpen} />
-                        <AddModal isOpen={isOpen} onClose={onClose} />
-                    </Box>
-                ) : (
-                    <HStack
-                        align="stretch"
-                        w="full"
-                        flex={1}
-                        spacing={0}
-                        overflow="hidden"
-                    >
-                        <Sidebar
-                            onOpen={onOpen}
-                            view={view}
-                            setView={setView}
-                            municipality={selectedMunicipality}
-                            setMunicipality={setSelectedMunicipality}
-                            feature={selectedFeature}
-                            setFeature={setSelectedFeature}
-                            subFeature={selectedSubFeature}
-                            setSubFeature={setSelectedSubFeature}
+        <Routes>
+            <Route
+                path="/login"
+                element={
+                    isAuthenticated ? (
+                        <Navigate to="/dashboard" replace />
+                    ) : (
+                        <Login onLogin={handleLogin} />
+                    )
+                }
+            />
+            <Route
+                path="/dashboard"
+                element={
+                    <ProtectedRoute isAuthenticated={isAuthenticated}>
+                        <Layout
+                            user={user}
                             photoCount={photoCount}
-                        />
-                        <Box
-                            flex={1}
-                            overflowY="auto"
-                            p={4}
-                            borderRadius="15px 0 0 0"
-                            backgroundColor="rgba(255, 255, 255, 0.05)"
-                            backdropFilter="blur(10px)"
-                            boxShadow="inset 0 4px 12px rgba(0, 0, 0, 0.05)"
+                            onLogout={handleLogout}
                         >
-                            <Dashboard
-                                view={view}
-                                selectedMunicipality={selectedMunicipality}
-                                feature={selectedFeature}
-                                subFeature={selectedSubFeature}
-                            />
-                        </Box>
-
-                        <AddModal isOpen={isOpen} onClose={onClose} />
-                    </HStack>
-                )}
-
-                {/* Footer */}
-                <Box w="full" py={2} px={6} bg="#000C5C" color="whiteAlpha.800">
-                    <Flex justifyContent="space-between" alignItems="center">
-                        <Text fontSize="xs">
-                            Typeface Analysis Dashboard © 2025
-                        </Text>
-                        <Text fontSize="xs">{photoCount} photos loaded</Text>
-                    </Flex>
-                </Box>
-            </VStack>
-        </Box>
+                            <DashboardPage />
+                        </Layout>
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/table"
+                element={
+                    <ProtectedRoute isAuthenticated={isAuthenticated}>
+                        <Layout
+                            user={user}
+                            photoCount={photoCount}
+                            onLogout={handleLogout}
+                        >
+                            <TablePage />
+                        </Layout>
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/labeling"
+                element={
+                    <ProtectedRoute isAuthenticated={isAuthenticated}>
+                        <Layout
+                            user={user}
+                            photoCount={photoCount}
+                            onLogout={handleLogout}
+                        >
+                            <LabelingPageComponent />
+                        </Layout>
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/"
+                element={
+                    <Navigate
+                        to={isAuthenticated ? "/dashboard" : "/login"}
+                        replace
+                    />
+                }
+            />
+        </Routes>
     );
 }

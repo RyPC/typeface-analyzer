@@ -602,13 +602,36 @@ app.get("/api/table-data", async (req, res) => {
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
         const sortOrder = req.query.sortOrder === "desc" ? -1 : 1;
+        
+        // Support legacy single filter for backward compatibility
         const filterType = req.query.filterType;
         const filterValue = req.query.filterValue;
 
         // Build filter query
         let query = {};
+        
+        // Handle legacy single filter
         if (filterType && filterValue) {
             query[filterType] = filterValue;
+        }
+        
+        // Handle multiple filters (new approach)
+        // Parse filters from JSON-encoded query parameter
+        if (req.query.filters) {
+            try {
+                const filters = JSON.parse(req.query.filters);
+                if (Array.isArray(filters)) {
+                    // Apply multiple filters with AND logic
+                    filters.forEach((filter) => {
+                        if (filter.type && filter.value) {
+                            query[filter.type] = filter.value;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error("Error parsing filters:", error);
+                // Continue with empty query if parsing fails
+            }
         }
 
         // Get total count for pagination
