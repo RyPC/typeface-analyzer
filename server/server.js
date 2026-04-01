@@ -1066,6 +1066,74 @@ app.patch("/api/photos/:id/unclaim", verifyToken, async (req, res) => {
     }
 });
 
+// Route to skip a photo
+app.patch("/api/photos/:id/skip", verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findById(req.userId).select("-password");
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const photo = await Photo.findById(id);
+        if (!photo) {
+            return res.status(404).json({ message: "Photo not found" });
+        }
+
+        if (photo.initials !== user.initials) {
+            return res.status(403).json({ message: "You can only skip photos you have claimed" });
+        }
+
+        if (photo.status !== "claimed" && photo.status !== "in_progress") {
+            return res.status(400).json({ message: "Only claimed or in-progress photos can be skipped" });
+        }
+
+        photo.status = "skipped";
+        photo.lastUpdated = new Date();
+        await photo.save();
+
+        res.json({ message: "Photo skipped successfully", photo });
+    } catch (error) {
+        console.error("Error skipping photo:", error);
+        res.status(500).json({ message: "Error skipping photo" });
+    }
+});
+
+// Route to reclaim a skipped photo
+app.patch("/api/photos/:id/reclaim", verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findById(req.userId).select("-password");
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const photo = await Photo.findById(id);
+        if (!photo) {
+            return res.status(404).json({ message: "Photo not found" });
+        }
+
+        if (photo.initials !== user.initials) {
+            return res.status(403).json({ message: "You can only reclaim photos you have skipped" });
+        }
+
+        if (photo.status !== "skipped") {
+            return res.status(400).json({ message: "Only skipped photos can be reclaimed" });
+        }
+
+        photo.status = "claimed";
+        photo.lastUpdated = new Date();
+        await photo.save();
+
+        res.json({ message: "Photo reclaimed successfully", photo });
+    } catch (error) {
+        console.error("Error reclaiming photo:", error);
+        res.status(500).json({ message: "Error reclaiming photo" });
+    }
+});
+
 // Route to update photo labels
 app.patch("/api/photos/:id/update", verifyToken, async (req, res) => {
     try {
@@ -1239,6 +1307,49 @@ app.get("/api/photos/my-claimed", verifyToken, async (req, res) => {
         res.status(500).json({
             message: "Error getting user's claimed photos",
         });
+    }
+});
+
+// Route to get skipped photos for current user
+app.get("/api/photos/my-skipped", verifyToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.userId).select("-password");
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        const sortOrder = req.query.sortOrder === "desc" ? -1 : 1;
+
+        const query = { initials: user.initials, status: "skipped" };
+
+        const totalCount = await Photo.countDocuments(query);
+        const data = await Photo.find(query)
+            .sort({ lastUpdated: sortOrder })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+
+        const dataWithPhotoLinks = data.map((photo) => ({
+            ...photo,
+            photoLink: `https://${S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || "us-west-1"}.amazonaws.com/Font+Census+Data/${photo.custom_id}`,
+        }));
+
+        res.json({
+            data: dataWithPhotoLinks,
+            pagination: {
+                total: totalCount,
+                page,
+                limit,
+                totalPages: Math.ceil(totalCount / limit),
+            },
+        });
+    } catch (error) {
+        console.error("Error getting user's skipped photos:", error);
+        res.status(500).json({ message: "Error getting user's skipped photos" });
     }
 });
 

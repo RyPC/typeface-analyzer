@@ -28,6 +28,8 @@ import {
     AttachmentIcon,
     EditIcon,
     CheckIcon,
+    ArrowForwardIcon,
+    RepeatIcon,
 } from "@chakra-ui/icons";
 import AddModal from "./AddModal";
 import PhotoDetailsModal from "./PhotoDetailsModal";
@@ -54,10 +56,14 @@ export default function LabelingPage({ user }) {
     const [loading, setLoading] = useState(true);
     const [unclaimedPage, setUnclaimedPage] = useState(1);
     const [claimedPage, setClaimedPage] = useState(1);
+    const [skippedPage, setSkippedPage] = useState(1);
     const [unclaimedTotalPages, setUnclaimedTotalPages] = useState(1);
     const [claimedTotalPages, setClaimedTotalPages] = useState(1);
+    const [skippedTotalPages, setSkippedTotalPages] = useState(1);
     const [unclaimedTotalCount, setUnclaimedTotalCount] = useState(0);
     const [claimedTotalCount, setClaimedTotalCount] = useState(0);
+    const [skippedTotalCount, setSkippedTotalCount] = useState(0);
+    const [skippedData, setSkippedData] = useState([]);
     const [sortOrder, setSortOrder] = useState("asc");
     const [filterType, setFilterType] = useState("");
     const [filterValue, setFilterValue] = useState("");
@@ -182,17 +188,51 @@ export default function LabelingPage({ user }) {
         }
     };
 
+    const fetchSkippedData = async (page) => {
+        try {
+            const queryParams = new URLSearchParams({
+                page,
+                limit: 10,
+                sortOrder,
+            });
+
+            const response = await fetch(
+                `${API_URL}/api/photos/my-skipped?${queryParams}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                }
+            );
+            if (!response.ok) throw new Error("Failed to fetch skipped data");
+
+            const result = await response.json();
+            setSkippedData(result.data);
+            setSkippedTotalPages(result.pagination.totalPages);
+            setSkippedTotalCount(result.pagination.total);
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "Failed to fetch skipped photos",
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        }
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             await Promise.all([
                 fetchUnclaimedData(unclaimedPage),
                 fetchClaimedData(claimedPage),
+                fetchSkippedData(skippedPage),
             ]);
             setLoading(false);
         };
         fetchData();
-    }, [unclaimedPage, claimedPage, sortOrder, filterType, filterValue]);
+    }, [unclaimedPage, claimedPage, skippedPage, sortOrder, filterType, filterValue]);
 
     const handleClaimPhoto = async (photoId) => {
         try {
@@ -344,6 +384,86 @@ export default function LabelingPage({ user }) {
         );
     };
 
+    const handleSkipPhoto = async (photoId) => {
+        try {
+            const response = await fetch(
+                `${API_URL}/api/photos/${photoId}/skip`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || "Failed to skip photo");
+            }
+
+            toast({
+                title: "Skipped",
+                description: "Photo moved to your skipped list",
+                status: "info",
+                duration: 3000,
+                isClosable: true,
+            });
+
+            await Promise.all([
+                fetchClaimedData(claimedPage),
+                fetchSkippedData(skippedPage),
+            ]);
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: error.message,
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        }
+    };
+
+    const handleReclaimPhoto = async (photoId) => {
+        try {
+            const response = await fetch(
+                `${API_URL}/api/photos/${photoId}/reclaim`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || "Failed to reclaim photo");
+            }
+
+            toast({
+                title: "Reclaimed",
+                description: "Photo moved back to your claimed list",
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+            });
+
+            await Promise.all([
+                fetchClaimedData(claimedPage),
+                fetchSkippedData(skippedPage),
+            ]);
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: error.message,
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        }
+    };
+
     const handleSelectAll = () => {
         if (selectedPhotos.length === unclaimedData.length) {
             setSelectedPhotos([]);
@@ -371,6 +491,8 @@ export default function LabelingPage({ user }) {
             setUnclaimedPage(unclaimedPage - 1);
         } else if (tab === 1 && claimedPage > 1) {
             setClaimedPage(claimedPage - 1);
+        } else if (tab === 2 && skippedPage > 1) {
+            setSkippedPage(skippedPage - 1);
         }
     };
 
@@ -379,6 +501,8 @@ export default function LabelingPage({ user }) {
             setUnclaimedPage(unclaimedPage + 1);
         } else if (tab === 1 && claimedPage < claimedTotalPages) {
             setClaimedPage(claimedPage + 1);
+        } else if (tab === 2 && skippedPage < skippedTotalPages) {
+            setSkippedPage(skippedPage + 1);
         }
     };
 
@@ -472,10 +596,11 @@ export default function LabelingPage({ user }) {
                                 isClosable: true,
                             });
 
-                            // Refresh both tabs
+                            // Refresh all tabs
                             await Promise.all([
                                 fetchUnclaimedData(unclaimedPage),
                                 fetchClaimedData(claimedPage),
+                                fetchSkippedData(skippedPage),
                             ]);
                         }
                     } catch (error) {
@@ -566,20 +691,34 @@ export default function LabelingPage({ user }) {
             </PageHeader>
 
             {/* Content Area */}
-            <Box
+            <Tabs
+                index={activeTab}
+                onChange={setActiveTab}
+                display="flex"
+                flexDirection="column"
                 flex={1}
-                overflowY="auto"
-                p={4}
-                backgroundColor="rgba(255, 255, 255, 0.05)"
-                backdropFilter="blur(10px)"
-                boxShadow="inset 0 4px 12px rgba(0, 0, 0, 0.05)"
+                overflow="hidden"
             >
-
-            <Tabs index={activeTab} onChange={setActiveTab}>
-                <TabList>
+                <TabList
+                    px={4}
+                    pt={2}
+                    flexShrink={0}
+                    backgroundColor="rgba(255, 255, 255, 0.05)"
+                    backdropFilter="blur(10px)"
+                >
                     <Tab>Browse Unclaimed ({unclaimedTotalCount})</Tab>
                     <Tab>My Photos ({claimedTotalCount})</Tab>
+                    <Tab>Skipped Phototos ({skippedTotalCount})</Tab>
                 </TabList>
+
+                <Box
+                    flex={1}
+                    overflowY="auto"
+                    p={4}
+                    backgroundColor="rgba(255, 255, 255, 0.05)"
+                    backdropFilter="blur(10px)"
+                    boxShadow="inset 0 4px 12px rgba(0, 0, 0, 0.05)"
+                >
 
                 <TabPanels>
                     {/* Browse Unclaimed Tab */}
@@ -728,6 +867,18 @@ export default function LabelingPage({ user }) {
                                             }}
                                         />
                                     </Tooltip>
+                                    <Tooltip label="Skip phototo">
+                                        <IconButton
+                                            icon={<ArrowForwardIcon />}
+                                            colorScheme="yellow"
+                                            size="sm"
+                                            ml={2}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleSkipPhoto(item._id);
+                                            }}
+                                        />
+                                    </Tooltip>
                                     <Tooltip label="Release this photo (unclaim)">
                                         <Button
                                             ml={2}
@@ -754,25 +905,59 @@ export default function LabelingPage({ user }) {
                             onNext={() => handleNextPage(1)}
                         />
                     </TabPanel>
-                </TabPanels>
-            </Tabs>
+                    {/* Skipped Tab */}
+                    <TabPanel>
+                        <Text fontSize="md" color="gray.600" mb={4}>
+                            {skippedTotalCount} photos you've skipped
+                        </Text>
 
-            <AddModal
-                isOpen={isModalOpen}
-                onClose={onModalClose}
-                isEditMode={isEditMode}
-                selectedPhoto={selectedPhoto}
-                onPhotoUpdated={() => {
-                    fetchClaimedData(claimedPage);
-                    fetchUnclaimedData(unclaimedPage);
-                }}
-            />
-            <PhotoDetailsModal
-                isOpen={isViewModalOpen}
-                onClose={onViewModalClose}
-                photo={viewPhoto}
-            />
-            </Box>
+                        <PhotoTable
+                            data={skippedData}
+                            sortOrder={sortOrder}
+                            onSortToggle={toggleSortOrder}
+                            onRowClick={handleViewPhoto}
+                            actionButtons={(item) => (
+                                <Tooltip label="Move back to My Photos">
+                                    <IconButton
+                                        icon={<RepeatIcon />}
+                                        colorScheme="green"
+                                        size="sm"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleReclaimPhoto(item._id);
+                                        }}
+                                    />
+                                </Tooltip>
+                            )}
+                            showActions={true}
+                        />
+
+                        <Pagination
+                            currentPage={skippedPage}
+                            totalPages={skippedTotalPages}
+                            onPrevious={() => handlePreviousPage(2)}
+                            onNext={() => handleNextPage(2)}
+                        />
+                    </TabPanel>
+                </TabPanels>
+
+                <AddModal
+                    isOpen={isModalOpen}
+                    onClose={onModalClose}
+                    isEditMode={isEditMode}
+                    selectedPhoto={selectedPhoto}
+                    onPhotoUpdated={() => {
+                        fetchClaimedData(claimedPage);
+                        fetchUnclaimedData(unclaimedPage);
+                    }}
+                />
+                <PhotoDetailsModal
+                    isOpen={isViewModalOpen}
+                    onClose={onViewModalClose}
+                    photo={viewPhoto}
+                />
+                </Box>
+            </Tabs>
         </VStack>
     );
 }
