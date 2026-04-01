@@ -5,6 +5,7 @@ export const TYPEFACE_STYLES = [
     "Script",
     "Stylized",
     "Quirky",
+    "Other",
 ];
 export const LETTERING_ONTOLOGIES = [
     "Printed",
