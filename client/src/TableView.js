@@ -158,6 +158,7 @@ export default function TableView({ onOpen }) {
 
     const toggleSortOrder = () => {
         setSortOrder(sortOrder === "desc" ? "asc" : "desc");
+        setCurrentPage(1);
     };
 
     const handleApplyFilters = (newFilters) => {

@@ -5,6 +5,7 @@ const path = require("path");
 const { Readable } = require("stream");
 const multer = require("multer");
 const Photo = require("../models/Photo");
+const { findPhotosSortedByLastUpdated } = require("../utils/photoListSort");
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -185,11 +186,12 @@ router.get("/table-data", async (req, res) => {
         }
 
         const totalCount = await Photo.countDocuments(query);
-        const data = await Photo.find(query)
-            .sort({ lastUpdated: sortOrder })
-            .skip(skip)
-            .limit(limit)
-            .lean();
+        const data = await findPhotosSortedByLastUpdated(
+            query,
+            sortOrder,
+            skip,
+            limit
+        );
 
         res.json({
             data,

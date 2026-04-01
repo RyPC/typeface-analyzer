@@ -292,6 +292,9 @@ export default function LabelingPage({ user }) {
 
     const toggleSortOrder = () => {
         setSortOrder(sortOrder === "desc" ? "asc" : "desc");
+        setUnclaimedPage(1);
+        setClaimedPage(1);
+        setSkippedPage(1);
     };
 
     const handleFilterTypeChange = (e) => {

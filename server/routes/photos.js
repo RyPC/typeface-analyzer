@@ -4,6 +4,7 @@ const Photo = require("../models/Photo");
 const User = require("../models/User");
 const verifyToken = require("../middleware/auth");
 const { constructS3Url } = require("../utils/s3");
+const { findPhotosSortedByLastUpdated } = require("../utils/photoListSort");
 
 function withPhotoLinks(photos) {
     return photos.map((photo) => ({
@@ -225,11 +226,12 @@ router.get("/unclaimed", verifyToken, async (req, res) => {
         }
 
         const totalCount = await Photo.countDocuments(query);
-        const data = await Photo.find(query)
-            .sort({ lastUpdated: sortOrder })
-            .skip(skip)
-            .limit(limit)
-            .lean();
+        const data = await findPhotosSortedByLastUpdated(
+            query,
+            sortOrder,
+            skip,
+            limit
+        );
 
         res.json({
             data: withPhotoLinks(data),
@@ -267,11 +269,12 @@ router.get("/my-claimed", verifyToken, async (req, res) => {
         }
 
         const totalCount = await Photo.countDocuments(query);
-        const data = await Photo.find(query)
-            .sort({ lastUpdated: sortOrder })
-            .skip(skip)
-            .limit(limit)
-            .lean();
+        const data = await findPhotosSortedByLastUpdated(
+            query,
+            sortOrder,
+            skip,
+            limit
+        );
 
         res.json({
             data: withPhotoLinks(data),
@@ -302,11 +305,12 @@ router.get("/my-skipped", verifyToken, async (req, res) => {
 
         const query = { status: "skipped" };
         const totalCount = await Photo.countDocuments(query);
-        const data = await Photo.find(query)
-            .sort({ lastUpdated: sortOrder })
-            .skip(skip)
-            .limit(limit)
-            .lean();
+        const data = await findPhotosSortedByLastUpdated(
+            query,
+            sortOrder,
+            skip,
+            limit
+        );
 
         res.json({
             data: withPhotoLinks(data),
