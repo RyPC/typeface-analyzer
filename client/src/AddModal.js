@@ -321,6 +321,11 @@ export default function AddModal({
         onOpen: onImageViewerOpen,
         onClose: onImageViewerClose,
     } = useDisclosure();
+    const {
+        isOpen: isUnsavedOpen,
+        onOpen: onUnsavedOpen,
+        onClose: onUnsavedClose,
+    } = useDisclosure();
     const cancelRef = React.useRef();
 
     // Changed to support multiple substrates
@@ -554,6 +559,14 @@ export default function AddModal({
     const closeModal = () => {
         resetForm();
         onClose();
+    };
+
+    const handleCloseRequest = () => {
+        if (isEditMode) {
+            onUnsavedOpen();
+        } else {
+            closeModal();
+        }
     };
 
     const resetForm = () => {
@@ -888,7 +901,8 @@ export default function AddModal({
     };
 
     return (
-        <Modal size="6xl" isOpen={isOpen} onClose={closeModal}>
+        <>
+        <Modal size="6xl" isOpen={isOpen} onClose={handleCloseRequest}>
             <ModalOverlay />
             <ModalContent>
                 <ModalHeader>
@@ -1527,7 +1541,7 @@ export default function AddModal({
                             Submit
                         </Button>
                     )}
-                    <Button variant="ghost" onClick={closeModal}>
+                    <Button variant="ghost" onClick={handleCloseRequest}>
                         Cancel
                     </Button>
                 </ModalFooter>
@@ -1579,5 +1593,46 @@ export default function AddModal({
                 />
             )}
         </Modal>
+
+        {/* Unsaved Changes Dialog */}
+        <AlertDialog
+            isOpen={isUnsavedOpen}
+            leastDestructiveRef={cancelRef}
+            onClose={onUnsavedClose}
+        >
+            <AlertDialogOverlay>
+                <AlertDialogContent>
+                    <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                        Unsaved Changes
+                    </AlertDialogHeader>
+                    <AlertDialogBody>
+                        Your changes will not be saved.
+                    </AlertDialogBody>
+                    <AlertDialogFooter>
+                        <Button
+                            ref={cancelRef}
+                            onClick={() => {
+                                onUnsavedClose();
+                                closeModal();
+                            }}
+                        >
+                            Discard
+                        </Button>
+                        <Button
+                            colorScheme="blue"
+                            ml={3}
+                            isLoading={loading}
+                            onClick={() => {
+                                onUnsavedClose();
+                                handleSubmit(false);
+                            }}
+                        >
+                            Save
+                        </Button>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialogOverlay>
+        </AlertDialog>
+        </>
     );
 }
