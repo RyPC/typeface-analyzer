@@ -56,6 +56,16 @@ export const PLACEMENTS = [
     "Sticker",
     "Other",
 ];
+export const FILTER_TYPES = [
+    { value: "municipality", label: "Municipality" },
+    { value: "initials", label: "Initials" },
+];
+
+export const MY_PHOTOS_FILTER_TYPES = [
+    { value: "municipality", label: "Municipality" },
+    { value: "status", label: "Status" },
+];
+
 export const MESSAGE_FUNCTIONS = [
     "Identification",
     "Address",

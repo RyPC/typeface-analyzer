@@ -17,8 +17,7 @@ import Login from "./Login.js";
 import Layout from "./Layout.js";
 import ProtectedRoute from "./ProtectedRoute.js";
 import { Routes, Route, Navigate } from "react-router-dom";
-
-const API_URL = process.env.REACT_APP_API_URL;
+import { apiUrl } from "./api";
 
 export default function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -46,7 +45,7 @@ export default function App() {
 
             try {
                 // Try to make an authenticated request to verify the token
-                const response = await fetch(`${API_URL}/api/auth/verify`, {
+                const response = await fetch(apiUrl("/api/auth/verify"), {
                     headers: {
                         Authorization: `Bearer ${storedToken}`,
                     },
@@ -80,8 +79,7 @@ export default function App() {
             if (!isAuthenticated) return;
 
             try {
-                const url = `${API_URL}/api/stats/count`;
-                const response = await fetch(url, {
+                const response = await fetch(apiUrl("/api/stats/count"), {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -108,7 +106,7 @@ export default function App() {
         try {
             const token = localStorage.getItem("token");
             if (token) {
-                await fetch(`${API_URL}/api/auth/logout`, {
+                await fetch(apiUrl("/api/auth/logout"), {
                     method: "POST",
                     headers: {
                         Authorization: `Bearer ${token}`,

@@ -8,10 +8,9 @@ import {
     PLACEMENTS,
     MESSAGE_FUNCTIONS,
 } from "./constants";
+import { apiUrl } from "./api";
 
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN || "";
-
-const API_URL = process.env.REACT_APP_API_URL;
 
 // Helper function to get default subFeature based on feature
 const getDefaultSubFeature = (feature) => {
@@ -70,8 +69,13 @@ export default function MapView({ feature, subFeature, view }) {
 
             setIsLoading(true);
             try {
-                const url = `${API_URL}/api/map-data?feature=${feature}&subFeature=${currentSubFeature}`;
-                const response = await fetch(url);
+                const qs = new URLSearchParams({
+                    feature,
+                    subFeature: currentSubFeature,
+                });
+                const response = await fetch(
+                    `${apiUrl("/api/stats/map-data")}?${qs}`
+                );
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }

@@ -37,18 +37,10 @@ import CsvToJsonConverter from "./csvToJson";
 import PhotoTable from "./components/PhotoTable";
 import Pagination from "./components/Pagination";
 import PageHeader from "./components/PageHeader";
-
-const API_URL = process.env.REACT_APP_API_URL;
-
-const FILTER_TYPES = [
-    { value: "municipality", label: "Municipality" },
-    { value: "initials", label: "Initials" },
-];
-
-const MY_PHOTOS_FILTER_TYPES = [
-    { value: "municipality", label: "Municipality" },
-    { value: "status", label: "Status" },
-];
+import usePhotoActions from "./hooks/usePhotoActions";
+import useBatchImport from "./hooks/useBatchImport";
+import { FILTER_TYPES, MY_PHOTOS_FILTER_TYPES } from "./constants";
+import { apiUrl } from "./api";
 
 export default function LabelingPage({ user }) {
     const [unclaimedData, setUnclaimedData] = useState([]);
@@ -86,18 +78,31 @@ export default function LabelingPage({ user }) {
         statuses: [],
     });
     const toast = useToast();
-    const [isImporting, setIsImporting] = useState(false);
     const [activeTab, setActiveTab] = useState(0);
     const [selectedPhotos, setSelectedPhotos] = useState([]);
 
     // Add file input reference
     const fileInputRef = React.useRef();
 
+    const { handleClaimPhoto, handleBatchClaim, handleUnclaimPhoto, handleSkipPhoto, handleReclaimPhoto } = usePhotoActions({
+        onRefreshUnclaimed: () => fetchUnclaimedData(unclaimedPage),
+        onRefreshClaimed: () => fetchClaimedData(claimedPage),
+        onRefreshSkipped: () => fetchSkippedData(skippedPage),
+    });
+
+    const { isImporting, handleBatchImport } = useBatchImport({
+        onComplete: () => Promise.all([
+            fetchUnclaimedData(unclaimedPage),
+            fetchClaimedData(claimedPage),
+            fetchSkippedData(skippedPage),
+        ]),
+    });
+
     // Fetch filter options
     useEffect(() => {
         const fetchFilterOptions = async () => {
             try {
-                const response = await fetch(`${API_URL}/api/filter-options`);
+                const response = await fetch(apiUrl("/api/batch/filter-options"));
                 if (!response.ok)
                     throw new Error("Failed to fetch filter options");
                 const options = await response.json();
@@ -126,7 +131,7 @@ export default function LabelingPage({ user }) {
             });
 
             const response = await fetch(
-                `${API_URL}/api/photos/unclaimed?${queryParams}`,
+                `${apiUrl("/api/photos/unclaimed")}?${queryParams}`,
                 {
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem(
@@ -162,7 +167,7 @@ export default function LabelingPage({ user }) {
             });
 
             const response = await fetch(
-                `${API_URL}/api/photos/my-claimed?${queryParams}`,
+                `${apiUrl("/api/photos/my-claimed")}?${queryParams}`,
                 {
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem(
@@ -197,7 +202,7 @@ export default function LabelingPage({ user }) {
             });
 
             const response = await fetch(
-                `${API_URL}/api/photos/my-skipped?${queryParams}`,
+                `${apiUrl("/api/photos/my-skipped")}?${queryParams}`,
                 {
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -234,147 +239,6 @@ export default function LabelingPage({ user }) {
         fetchData();
     }, [unclaimedPage, claimedPage, skippedPage, sortOrder, filterType, filterValue]);
 
-    const handleClaimPhoto = async (photoId) => {
-        try {
-            const response = await fetch(
-                `${API_URL}/api/photos/${photoId}/claim`,
-                {
-                    method: "PATCH",
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || "Failed to claim photo");
-            }
-
-            toast({
-                title: "Success",
-                description: "Photo claimed successfully!",
-                status: "success",
-                duration: 3000,
-                isClosable: true,
-            });
-
-            // Refresh both tabs
-            await Promise.all([
-                fetchUnclaimedData(unclaimedPage),
-                fetchClaimedData(claimedPage),
-            ]);
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: error.message,
-                status: "error",
-                duration: 3000,
-                isClosable: true,
-            });
-        }
-    };
-
-    const handleBatchClaim = async () => {
-        if (selectedPhotos.length === 0) {
-            toast({
-                title: "No Selection",
-                description: "Please select photos to claim",
-                status: "warning",
-                duration: 3000,
-                isClosable: true,
-            });
-            return;
-        }
-
-        try {
-            const response = await fetch(`${API_URL}/api/photos/batch-claim`, {
-                method: "PATCH",
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ photoIds: selectedPhotos }),
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(
-                    error.message || "Failed to batch claim photos"
-                );
-            }
-
-            const result = await response.json();
-            toast({
-                title: "Success",
-                description: result.message,
-                status: "success",
-                duration: 5000,
-                isClosable: true,
-            });
-
-            // Clear selection and refresh both tabs
-            setSelectedPhotos([]);
-            await Promise.all([
-                fetchUnclaimedData(unclaimedPage),
-                fetchClaimedData(claimedPage),
-            ]);
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: error.message,
-                status: "error",
-                duration: 3000,
-                isClosable: true,
-            });
-        }
-    };
-
-    const handleUnclaimPhoto = async (photoId) => {
-        try {
-            const response = await fetch(
-                `${API_URL}/api/photos/${photoId}/unclaim`,
-                {
-                    method: "PATCH",
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || "Failed to unclaim photo");
-            }
-
-            toast({
-                title: "Released",
-                description: "Photo returned to unclaimed pool",
-                status: "success",
-                duration: 3000,
-                isClosable: true,
-            });
-
-            await Promise.all([
-                fetchUnclaimedData(unclaimedPage),
-                fetchClaimedData(claimedPage),
-            ]);
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: error.message,
-                status: "error",
-                duration: 3000,
-                isClosable: true,
-            });
-        }
-    };
 
     const handleSelectPhoto = (photoId) => {
         setSelectedPhotos((prev) =>
@@ -382,86 +246,6 @@ export default function LabelingPage({ user }) {
                 ? prev.filter((id) => id !== photoId)
                 : [...prev, photoId]
         );
-    };
-
-    const handleSkipPhoto = async (photoId) => {
-        try {
-            const response = await fetch(
-                `${API_URL}/api/photos/${photoId}/skip`,
-                {
-                    method: "PATCH",
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
-                }
-            );
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || "Failed to skip photo");
-            }
-
-            toast({
-                title: "Skipped",
-                description: "Photo moved to your skipped list",
-                status: "info",
-                duration: 3000,
-                isClosable: true,
-            });
-
-            await Promise.all([
-                fetchClaimedData(claimedPage),
-                fetchSkippedData(skippedPage),
-            ]);
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: error.message,
-                status: "error",
-                duration: 3000,
-                isClosable: true,
-            });
-        }
-    };
-
-    const handleReclaimPhoto = async (photoId) => {
-        try {
-            const response = await fetch(
-                `${API_URL}/api/photos/${photoId}/reclaim`,
-                {
-                    method: "PATCH",
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
-                }
-            );
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || "Failed to reclaim photo");
-            }
-
-            toast({
-                title: "Reclaimed",
-                description: "Photo moved back to your claimed list",
-                status: "success",
-                duration: 3000,
-                isClosable: true,
-            });
-
-            await Promise.all([
-                fetchClaimedData(claimedPage),
-                fetchSkippedData(skippedPage),
-            ]);
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: error.message,
-                status: "error",
-                duration: 3000,
-                isClosable: true,
-            });
-        }
     };
 
     const handleSelectAll = () => {
@@ -535,95 +319,6 @@ export default function LabelingPage({ user }) {
                 return [];
         }
     };
-
-    const handleBatchImport = async (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        setIsImporting(true);
-
-        try {
-            // Create FormData and append the file
-            const formData = new FormData();
-            formData.append("file", file);
-
-            const response = await fetch(`${API_URL}/api/batch-import`, {
-                method: "POST",
-                body: formData,
-            });
-
-            if (!response.ok) {
-                throw new Error("Failed to import batch");
-            }
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let successCount = 0;
-            let errorCount = 0;
-
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value);
-                const lines = chunk.split("\n").filter((line) => line.trim());
-
-                for (const line of lines) {
-                    try {
-                        const data = JSON.parse(line);
-                        if (data.type === "progress") {
-                            const batchResults = data.results;
-                            successCount += batchResults.filter(
-                                (r) => r.success
-                            ).length;
-                            errorCount += batchResults.filter(
-                                (r) => !r.success
-                            ).length;
-                        } else if (data.type === "complete") {
-                            // Final results
-                            successCount = data.results.filter(
-                                (r) => r.success
-                            ).length;
-                            errorCount = data.results.filter(
-                                (r) => !r.success
-                            ).length;
-
-                            toast({
-                                title: "Batch Import Complete",
-                                description: `Successfully imported ${successCount} photos. ${errorCount} failed.`,
-                                status: successCount > 0 ? "success" : "error",
-                                duration: 5000,
-                                isClosable: true,
-                            });
-
-                            // Refresh all tabs
-                            await Promise.all([
-                                fetchUnclaimedData(unclaimedPage),
-                                fetchClaimedData(claimedPage),
-                                fetchSkippedData(skippedPage),
-                            ]);
-                        }
-                    } catch (error) {
-                        console.error("Error parsing response chunk:", error);
-                    }
-                }
-            }
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: "Failed to import batch: " + error.message,
-                status: "error",
-                duration: 5000,
-                isClosable: true,
-            });
-        } finally {
-            setIsImporting(false);
-        }
-
-        // Reset the file input
-        event.target.value = "";
-    };
-
 
     if (loading) {
         return (
@@ -745,7 +440,7 @@ export default function LabelingPage({ user }) {
                                 <Button
                                     size="sm"
                                     colorScheme="green"
-                                    onClick={handleBatchClaim}
+                                    onClick={() => handleBatchClaim(selectedPhotos, () => setSelectedPhotos([]))}
                                     isDisabled={selectedPhotos.length === 0}
                                 >
                                     Claim Selected ({selectedPhotos.length})

@@ -104,9 +104,8 @@ All photo images are stored in S3; the server constructs URLs on the fly from `c
 
 ### Server Structure
 
-`server/server.js` is a single ~1250-line Express file containing all routes:
-- **Public stats routes** (`/api/stats/*`) — MongoDB aggregation pipelines, no auth required; each supports optional `/:muni` param for municipality filtering
+`server/server.js` mounts route modules under `/api`:
+- **Public stats routes** (`/api/stats/*`) — MongoDB aggregation pipelines, no auth required; includes `GET /municipalities`, `GET /map-data`, `GET /count`, chart routes; chart routes support optional `/:muni` for municipality filtering
 - **Auth routes** (`/api/auth/*`) — register, login, logout, verify
 - **Photo management routes** (`/api/photos/*`) — JWT-protected; enforces status workflow
-- **Batch import** (`POST /api/batch-import`) — streams JSONL via Multer (memory storage), deduplicates by `custom_id`
-- **Map data** (`GET /api/map-data`) — aggregates per-municipality counts for a given `feature`/`subFeature`
+- **Batch routes** (`/api/batch/*`) — `POST /import` (JSONL via Multer), `GET /next`, `GET /table-data`, `GET /filter-options`

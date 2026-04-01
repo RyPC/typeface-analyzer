@@ -17,8 +17,7 @@ import {
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
-const API_URL = process.env.REACT_APP_API_URL;
+import { apiUrl } from "./api";
 
 export default function Login({ onLogin }) {
     const navigate = useNavigate();
@@ -53,7 +52,7 @@ export default function Login({ onLogin }) {
         setIsLoading(true);
 
         try {
-            const response = await fetch(`${API_URL}/api/auth/login`, {
+            const response = await fetch(apiUrl("/api/auth/login"), {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -108,7 +107,7 @@ export default function Login({ onLogin }) {
         }
 
         try {
-            const response = await fetch(`${API_URL}/api/auth/register`, {
+            const response = await fetch(apiUrl("/api/auth/register"), {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

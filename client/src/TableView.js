@@ -25,8 +25,8 @@ import PhotoTable from "./components/PhotoTable";
 import Pagination from "./components/Pagination";
 import FilterModal from "./FilterModal";
 import PageHeader from "./components/PageHeader";
-
-const API_URL = process.env.REACT_APP_API_URL;
+import useBatchImport from "./hooks/useBatchImport";
+import { apiUrl } from "./api";
 
 export default function TableView({ onOpen }) {
     const [data, setData] = useState([]);
@@ -55,16 +55,19 @@ export default function TableView({ onOpen }) {
         statuses: [],
     });
     const toast = useToast();
-    const [isImporting, setIsImporting] = useState(false);
 
     // Add file input reference
     const fileInputRef = React.useRef();
+
+    const { isImporting, handleBatchImport } = useBatchImport({
+        onComplete: () => fetchData(currentPage),
+    });
 
     // Fetch filter options
     useEffect(() => {
         const fetchFilterOptions = async () => {
             try {
-                const response = await fetch(`${API_URL}/api/filter-options`);
+                const response = await fetch(apiUrl("/api/batch/filter-options"));
                 if (!response.ok)
                     throw new Error("Failed to fetch filter options");
                 const options = await response.json();
@@ -115,7 +118,7 @@ export default function TableView({ onOpen }) {
             }
 
             const response = await fetch(
-                `${API_URL}/api/table-data?${queryParams}`
+                `${apiUrl("/api/batch/table-data")}?${queryParams}`
             );
             if (!response.ok) throw new Error("Failed to fetch data");
 
@@ -177,91 +180,6 @@ export default function TableView({ onOpen }) {
     const handleRowClick = (photo) => {
         setSelectedPhoto(photo);
         onModalOpen();
-    };
-
-    const handleBatchImport = async (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        setIsImporting(true);
-
-        try {
-            // Create FormData and append the file
-            const formData = new FormData();
-            formData.append("file", file);
-
-            const response = await fetch(`${API_URL}/api/batch-import`, {
-                method: "POST",
-                body: formData,
-            });
-
-            if (!response.ok) {
-                throw new Error("Failed to import batch");
-            }
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let successCount = 0;
-            let errorCount = 0;
-            let processedCount = 0;
-
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value);
-                const lines = chunk.split("\n").filter((line) => line.trim());
-
-                for (const line of lines) {
-                    try {
-                        const data = JSON.parse(line);
-                        if (data.type === "progress") {
-                            const batchResults = data.results;
-                            successCount += batchResults.filter(
-                                (r) => r.success
-                            ).length;
-                            errorCount += batchResults.filter(
-                                (r) => !r.success
-                            ).length;
-                        } else if (data.type === "complete") {
-                            // Final results
-                            successCount = data.results.filter(
-                                (r) => r.success
-                            ).length;
-                            errorCount = data.results.filter(
-                                (r) => !r.success
-                            ).length;
-
-                            toast({
-                                title: "Batch Import Complete",
-                                description: `Successfully imported ${successCount} photos. ${errorCount} failed.`,
-                                status: successCount > 0 ? "success" : "error",
-                                duration: 5000,
-                                isClosable: true,
-                            });
-
-                            // Refresh the table data
-                            fetchData(currentPage);
-                        }
-                    } catch (error) {
-                        console.error("Error parsing response chunk:", error);
-                    }
-                }
-            }
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: "Failed to import batch: " + error.message,
-                status: "error",
-                duration: 5000,
-                isClosable: true,
-            });
-        } finally {
-            setIsImporting(false);
-        }
-
-        // Reset the file input
-        event.target.value = "";
     };
 
     return (

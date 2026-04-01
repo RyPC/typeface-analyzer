@@ -8,8 +8,7 @@ import {
     MESSAGE_FUNCTIONS,
 } from "./constants";
 import PageHeader from "./components/PageHeader";
-
-const API_URL = process.env.REACT_APP_API_URL;
+import { apiUrl } from "./api";
 
 export default function Sidebar({
     onOpen,
@@ -29,8 +28,7 @@ export default function Sidebar({
     useEffect(() => {
         const fetchMunicipalities = async () => {
             try {
-                const url = `${API_URL}/api/municipalities`;
-                const response = await fetch(url);
+                const response = await fetch(apiUrl("/api/stats/municipalities"));
                 if (!response.ok) {
                     throw new Error("Failed to fetch municipalities");
                 }
