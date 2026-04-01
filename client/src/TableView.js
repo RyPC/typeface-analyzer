@@ -162,14 +162,14 @@ export default function TableView({ onOpen }) {
         setCurrentPage(1);
     };
 
-    const handleRemoveFilter = (filterToRemove) => {
-        const newFilters = filters.filter(
-            (f) =>
-                !(
-                    f.type === filterToRemove.type &&
-                    f.value === filterToRemove.value
-                )
-        );
+    const handleRemoveFilter = (filterType, filterValue) => {
+        const newFilters = filters
+            .map((f) => {
+                if (f.type !== filterType) return f;
+                const newValues = (f.values || []).filter((v) => v !== filterValue);
+                return newValues.length > 0 ? { ...f, values: newValues } : null;
+            })
+            .filter(Boolean);
         setFilters(newFilters);
         setCurrentPage(1);
     };
@@ -321,7 +321,7 @@ export default function TableView({ onOpen }) {
                         Filters
                         {filters.length > 0 && (
                             <Badge ml={2} colorScheme="gray">
-                                {filters.length}
+                                {filters.reduce((sum, f) => sum + (f.values || []).length, 0)}
                             </Badge>
                         )}
                     </Button>
@@ -336,30 +336,32 @@ export default function TableView({ onOpen }) {
                             borderColor="gray.300"
                         />
                         <HStack wrap="wrap" spacing={2}>
-                            {filters.map((filter, index) => (
-                                <Badge
-                                    key={index}
-                                    as="button"
-                                    colorScheme="gray"
-                                    px={2}
-                                    py={1}
-                                    fontSize="xs"
-                                    display="flex"
-                                    alignItems="center"
-                                    gap={1}
-                                    cursor="pointer"
-                                    onClick={() => handleRemoveFilter(filter)}
-                                    transition="all 0.2s"
-                                    _hover={{
-                                        bg: "gray.400",
-                                        color: "white",
-                                    }}
-                                    aria-label={`Remove ${filter.type} filter`}
-                                >
-                                    {filter.type}: {filter.value}
-                                    <CloseIcon w={2} h={2} ml={1} />
-                                </Badge>
-                            ))}
+                            {filters.flatMap((filter) =>
+                                (filter.values || []).map((value) => (
+                                    <Badge
+                                        key={`${filter.type}-${value}`}
+                                        as="button"
+                                        colorScheme="gray"
+                                        px={2}
+                                        py={1}
+                                        fontSize="xs"
+                                        display="flex"
+                                        alignItems="center"
+                                        gap={1}
+                                        cursor="pointer"
+                                        onClick={() => handleRemoveFilter(filter.type, value)}
+                                        transition="all 0.2s"
+                                        _hover={{
+                                            bg: "gray.400",
+                                            color: "white",
+                                        }}
+                                        aria-label={`Remove ${filter.type}: ${value} filter`}
+                                    >
+                                        {filter.type}: {value}
+                                        <CloseIcon w={2} h={2} ml={1} />
+                                    </Badge>
+                                ))
+                            )}
                         </HStack>
                     </>
                 )}
@@ -382,10 +384,10 @@ export default function TableView({ onOpen }) {
                     <>
                         <Text fontSize="md" color="gray.600" mb={4}>
                             {totalCount} {totalCount === 1 ? "photo" : "photos"} found
-                            {filters.length > 0 &&
-                                ` with ${filters.length} filter${
-                                    filters.length !== 1 ? "s" : ""
-                                } applied`}
+                            {filters.length > 0 && (() => {
+                                const count = filters.reduce((sum, f) => sum + (f.values || []).length, 0);
+                                return ` with ${count} filter${count !== 1 ? "s" : ""} applied`;
+                            })()}
                             {searchTerm && ` matching "${searchTerm}"`}
                         </Text>
 

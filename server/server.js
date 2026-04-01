@@ -623,8 +623,12 @@ app.get("/api/table-data", async (req, res) => {
                 if (Array.isArray(filters)) {
                     // Apply multiple filters with AND logic
                     filters.forEach((filter) => {
-                        if (filter.type && filter.value) {
-                            query[filter.type] = filter.value;
+                        if (filter.type) {
+                            if (Array.isArray(filter.values) && filter.values.length > 0) {
+                                query[filter.type] = { $in: filter.values };
+                            } else if (filter.value) {
+                                query[filter.type] = filter.value;
+                            }
                         }
                     });
                 }
