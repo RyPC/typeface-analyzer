@@ -39,8 +39,7 @@ const photoSchema = new mongoose.Schema({
     initials: { 
         type: String, 
         required: function() {
-            // Required only if status is not "unclaimed"
-            return this.status !== "unclaimed";
+            return this.status !== "unclaimed" && this.status !== "skipped";
         }
     },
     municipality: { type: String, required: true },

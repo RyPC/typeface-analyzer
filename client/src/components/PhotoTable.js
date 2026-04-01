@@ -9,6 +9,7 @@ export default function PhotoTable({
     onRowClick,
     actionButtons = null,
     showActions = false,
+    showInitials = true,
 }) {
     return (
         <Box overflowX="auto">
@@ -17,6 +18,7 @@ export default function PhotoTable({
                     sortOrder={sortOrder}
                     onSortToggle={onSortToggle}
                     showActions={showActions}
+                    showInitials={showInitials}
                 />
                 <Tbody>
                     {data.map((item) => (
@@ -27,6 +29,7 @@ export default function PhotoTable({
                             actionButtons={
                                 actionButtons ? actionButtons(item) : null
                             }
+                            showInitials={showInitials}
                         />
                     ))}
                 </Tbody>

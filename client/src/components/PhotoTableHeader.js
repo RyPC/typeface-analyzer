@@ -4,14 +4,15 @@ import { TriangleUpIcon, TriangleDownIcon } from "@chakra-ui/icons";
 export default function PhotoTableHeader({ 
     sortOrder, 
     onSortToggle, 
-    showActions = false 
+    showActions = false,
+    showInitials = true,
 }) {
     return (
         <Thead>
             <Tr>
                 <Th>Status</Th>
                 <Th>Municipality</Th>
-                <Th>Initials</Th>
+                {showInitials && <Th>Initials</Th>}
                 <Th>
                     <Flex
                         align="center"

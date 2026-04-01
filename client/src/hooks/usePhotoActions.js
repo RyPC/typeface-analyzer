@@ -77,7 +77,7 @@ export default function usePhotoActions({ onRefreshUnclaimed, onRefreshClaimed, 
                 const err = await response.json();
                 throw new Error(err.message || "Failed to skip photo");
             }
-            toast({ title: "Skipped", description: "Photo moved to your skipped list", status: "info", duration: 3000, isClosable: true });
+            toast({ title: "Skipped", description: "Photo released to the global skipped list", status: "info", duration: 3000, isClosable: true });
             await Promise.all([onRefreshClaimed?.(), onRefreshSkipped?.()]);
         } catch (error) {
             toast({ title: "Error", description: error.message, status: "error", duration: 3000, isClosable: true });

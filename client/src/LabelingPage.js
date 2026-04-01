@@ -562,7 +562,7 @@ export default function LabelingPage({ user }) {
                                             }}
                                         />
                                     </Tooltip>
-                                    <Tooltip label="Skip phototo">
+                                    <Tooltip label="Skip photo">
                                         <IconButton
                                             icon={<ArrowForwardIcon />}
                                             colorScheme="yellow"
@@ -603,7 +603,7 @@ export default function LabelingPage({ user }) {
                     {/* Skipped Tab */}
                     <TabPanel>
                         <Text fontSize="md" color="gray.600" mb={4}>
-                            {skippedTotalCount} photos you've skipped
+                            {skippedTotalCount} skipped phototos
                         </Text>
 
                         <PhotoTable
@@ -611,8 +611,9 @@ export default function LabelingPage({ user }) {
                             sortOrder={sortOrder}
                             onSortToggle={toggleSortOrder}
                             onRowClick={handleViewPhoto}
+                            showInitials={false}
                             actionButtons={(item) => (
-                                <Tooltip label="Move back to My Photos">
+                                <Tooltip label="Claim this photo for yourself">
                                     <IconButton
                                         icon={<RepeatIcon />}
                                         colorScheme="green"

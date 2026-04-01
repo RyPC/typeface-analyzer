@@ -4,7 +4,8 @@ import { getStatusColor, getSubstrateCount, getTypefaceCount } from "../utils/ph
 export default function PhotoTableRow({ 
     photo, 
     onRowClick, 
-    actionButtons = null
+    actionButtons = null,
+    showInitials = true,
 }) {
     const handleClick = (e) => {
         // Don't trigger row click if clicking on action buttons or their children
@@ -28,7 +29,7 @@ export default function PhotoTableRow({
                 </Badge>
             </Td>
             <Td>{photo.municipality || "-"}</Td>
-            <Td>{photo.initials || "-"}</Td>
+            {showInitials && <Td>{photo.initials || "-"}</Td>}
             <Td>
                 {new Date(photo.lastUpdated).toLocaleDateString()}
             </Td>
