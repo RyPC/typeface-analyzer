@@ -58,8 +58,10 @@ export default function LabelingPage({ user }) {
     const [skippedTotalCount, setSkippedTotalCount] = useState(0);
     const [skippedData, setSkippedData] = useState([]);
     const [sortOrder, setSortOrder] = useState("asc");
-    const [filterType, setFilterType] = useState("");
-    const [filterValue, setFilterValue] = useState("");
+    const [unclaimedFilterType, setUnclaimedFilterType] = useState("");
+    const [unclaimedFilterValue, setUnclaimedFilterValue] = useState("");
+    const [claimedFilterType, setClaimedFilterType] = useState("status");
+    const [claimedFilterValue, setClaimedFilterValue] = useState("claimed");
     const [selectedPhoto, setSelectedPhoto] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
     const [viewPhoto, setViewPhoto] = useState(null);
@@ -128,7 +130,7 @@ export default function LabelingPage({ user }) {
                 page,
                 limit: 10,
                 sortOrder,
-                ...(filterType && filterValue && { filterType, filterValue }),
+                ...(unclaimedFilterType && unclaimedFilterValue && { filterType: unclaimedFilterType, filterValue: unclaimedFilterValue }),
             });
 
             const response = await fetch(
@@ -164,7 +166,7 @@ export default function LabelingPage({ user }) {
                 page,
                 limit: 10,
                 sortOrder,
-                ...(filterType && filterValue && { filterType, filterValue }),
+                ...(claimedFilterType && claimedFilterValue && { filterType: claimedFilterType, filterValue: claimedFilterValue }),
             });
 
             const response = await fetch(
@@ -238,7 +240,7 @@ export default function LabelingPage({ user }) {
             setLoading(false);
         };
         fetchData();
-    }, [unclaimedPage, claimedPage, skippedPage, sortOrder, filterType, filterValue]);
+    }, [unclaimedPage, claimedPage, skippedPage, sortOrder, unclaimedFilterType, unclaimedFilterValue, claimedFilterType, claimedFilterValue]);
 
 
     const handleSelectPhoto = (photoId) => {
@@ -298,20 +300,29 @@ export default function LabelingPage({ user }) {
         setSkippedPage(1);
     };
 
-    const handleFilterTypeChange = (e) => {
-        setFilterType(e.target.value);
-        setFilterValue("");
+    const handleUnclaimedFilterTypeChange = (e) => {
+        setUnclaimedFilterType(e.target.value);
+        setUnclaimedFilterValue("");
         setUnclaimedPage(1);
+    };
+
+    const handleUnclaimedFilterValueChange = (e) => {
+        setUnclaimedFilterValue(e.target.value);
+        setUnclaimedPage(1);
+    };
+
+    const handleClaimedFilterTypeChange = (e) => {
+        setClaimedFilterType(e.target.value);
+        setClaimedFilterValue("");
         setClaimedPage(1);
     };
 
-    const handleFilterValueChange = (e) => {
-        setFilterValue(e.target.value);
-        setUnclaimedPage(1);
+    const handleClaimedFilterValueChange = (e) => {
+        setClaimedFilterValue(e.target.value);
         setClaimedPage(1);
     };
 
-    const getFilterOptions = () => {
+    const getFilterOptions = (filterType) => {
         switch (filterType) {
             case "municipality":
                 return filterOptions.municipalities;
@@ -436,9 +447,9 @@ export default function LabelingPage({ user }) {
                         <Flex justify="space-between" align="center" mb={4}>
                             <Text fontSize="md" color="gray.600">
                                 {unclaimedTotalCount} unclaimed photos available
-                                {filterType &&
-                                    filterValue &&
-                                    ` with ${filterType} "${filterValue}"`}
+                                {unclaimedFilterType &&
+                                    unclaimedFilterValue &&
+                                    ` with ${unclaimedFilterType} "${unclaimedFilterValue}"`}
                             </Text>
                             <HStack spacing={2}>
                                 <Button
@@ -466,8 +477,8 @@ export default function LabelingPage({ user }) {
                         <HStack spacing={4} mb={4}>
                             <Select
                                 placeholder="Filter by"
-                                value={filterType}
-                                onChange={handleFilterTypeChange}
+                                value={unclaimedFilterType}
+                                onChange={handleUnclaimedFilterTypeChange}
                                 width="200px"
                             >
                                 {FILTER_TYPES.map((type) => (
@@ -476,14 +487,14 @@ export default function LabelingPage({ user }) {
                                     </option>
                                 ))}
                             </Select>
-                            {filterType && (
+                            {unclaimedFilterType && (
                                 <Select
                                     placeholder="Select value"
-                                    value={filterValue}
-                                    onChange={handleFilterValueChange}
+                                    value={unclaimedFilterValue}
+                                    onChange={handleUnclaimedFilterValueChange}
                                     width="200px"
                                 >
-                                    {getFilterOptions().map((value) => (
+                                    {getFilterOptions(unclaimedFilterType).map((value) => (
                                         <option key={value} value={value}>
                                             {value}
                                         </option>
@@ -525,16 +536,16 @@ export default function LabelingPage({ user }) {
                     <TabPanel>
                         <Text fontSize="md" color="gray.600" mb={4}>
                             {claimedTotalCount} photos claimed by you
-                            {filterType &&
-                                filterValue &&
-                                ` with ${filterType} "${filterValue}"`}
+                            {claimedFilterType &&
+                                claimedFilterValue &&
+                                ` with ${claimedFilterType} "${claimedFilterValue}"`}
                         </Text>
 
                         <HStack spacing={4} mb={4}>
                             <Select
                                 placeholder="Filter by"
-                                value={filterType}
-                                onChange={handleFilterTypeChange}
+                                value={claimedFilterType}
+                                onChange={handleClaimedFilterTypeChange}
                                 width="200px"
                             >
                                 {MY_PHOTOS_FILTER_TYPES.map((type) => (
@@ -543,14 +554,14 @@ export default function LabelingPage({ user }) {
                                     </option>
                                 ))}
                             </Select>
-                            {filterType && (
+                            {claimedFilterType && (
                                 <Select
                                     placeholder="Select value"
-                                    value={filterValue}
-                                    onChange={handleFilterValueChange}
+                                    value={claimedFilterValue}
+                                    onChange={handleClaimedFilterValueChange}
                                     width="200px"
                                 >
-                                    {getFilterOptions().map((value) => (
+                                    {getFilterOptions(claimedFilterType).map((value) => (
                                         <option key={value} value={value}>
                                             {value}
                                         </option>
