@@ -29,6 +29,7 @@ import {
     VStack,
     Badge,
     useDisclosure,
+    useToast,
 } from "@chakra-ui/react";
 import { AddIcon } from "@chakra-ui/icons";
 import React, { useState, useEffect } from "react";
@@ -44,6 +45,7 @@ export default function AddModal({
     selectedPhoto = null,
     onPhotoUpdated,
 }) {
+    const toast = useToast();
     const [photo, setPhoto] = useState(null);
     const [photoPreview, setPhotoPreview] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -621,6 +623,13 @@ export default function AddModal({
                     throw new Error(error.message || "Failed to update photo");
                 }
 
+                toast({
+                    title: setFinished ? "Photo finished" : "Photo updated",
+                    status: "success",
+                    duration: 3000,
+                    isClosable: true,
+                });
+
                 // Call the callback to refresh the parent component
                 if (onPhotoUpdated) {
                     onPhotoUpdated();
@@ -933,14 +942,16 @@ export default function AddModal({
                             >
                                 Update
                             </Button>
-                            <Button
-                                colorScheme="teal"
-                                mr={3}
-                                onClick={onFinishOpen}
-                                isLoading={loading}
-                            >
-                                Finish
-                            </Button>
+                            {selectedPhoto?.status !== "finished" && (
+                                <Button
+                                    colorScheme="teal"
+                                    mr={3}
+                                    onClick={onFinishOpen}
+                                    isLoading={loading}
+                                >
+                                    Finish
+                                </Button>
+                            )}
                         </>
                     ) : (
                         <Button
