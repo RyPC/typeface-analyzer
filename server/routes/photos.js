@@ -171,7 +171,7 @@ router.patch("/:id/update", verifyToken, async (req, res) => {
         if (!user) return res.status(404).json({ message: "User not found" });
         const photo = await Photo.findById(id);
         if (!photo) return res.status(404).json({ message: "Photo not found" });
-        if (photo.status !== "claimed" && photo.status !== "in_progress") {
+        if (photo.status !== "claimed" && photo.status !== "in_progress" && photo.status !== "finished") {
             return res
                 .status(400)
                 .json({ message: "Photo must be claimed to update" });
