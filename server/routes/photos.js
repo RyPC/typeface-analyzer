@@ -6,6 +6,20 @@ const verifyToken = require("../middleware/auth");
 const { constructS3Url } = require("../utils/s3");
 const { findPhotosSortedByLastUpdated } = require("../utils/photoListSort");
 
+function applyFilters(query, filtersStr) {
+    if (!filtersStr) return;
+    try {
+        const filters = JSON.parse(filtersStr);
+        if (Array.isArray(filters)) {
+            filters.forEach((f) => {
+                if (f.type && Array.isArray(f.values) && f.values.length > 0) {
+                    query[f.type] = { $in: f.values };
+                }
+            });
+        }
+    } catch (_) {}
+}
+
 function withPhotoLinks(photos) {
     return photos.map((photo) => ({
         ...photo,
@@ -220,10 +234,10 @@ router.get("/unclaimed", verifyToken, async (req, res) => {
         const filterType = req.query.filterType;
         const filterValue = req.query.filterValue;
 
-        let query = { status: "unclaimed" };
-        if (filterType && filterValue) {
-            query[filterType] = filterValue;
-        }
+        let query = {};
+        applyFilters(query, req.query.filters);
+        // Always restrict to unclaimed regardless of any status filter
+        query.status = "unclaimed";
 
         const totalCount = await Photo.countDocuments(query);
         const data = await findPhotosSortedByLastUpdated(
@@ -260,12 +274,12 @@ router.get("/my-claimed", verifyToken, async (req, res) => {
         const filterType = req.query.filterType;
         const filterValue = req.query.filterValue;
 
-        let query = {
-            initials: user.initials,
-            status: { $in: ["claimed", "in_progress", "finished"] },
-        };
-        if (filterType && filterValue) {
-            query[filterType] = filterValue;
+        let query = {};
+        applyFilters(query, req.query.filters);
+        // Always restrict to this user's photos; if no status filter applied, exclude unclaimed/skipped
+        query.initials = user.initials;
+        if (!query.status) {
+            query.status = { $in: ["claimed", "in_progress", "finished"] };
         }
 
         const totalCount = await Photo.countDocuments(query);

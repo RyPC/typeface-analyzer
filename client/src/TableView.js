@@ -16,14 +16,14 @@ import {
     Input,
     InputGroup,
     InputLeftElement,
-    Badge,
     Divider,
 } from "@chakra-ui/react";
-import { SearchIcon, CloseIcon } from "@chakra-ui/icons";
+import { SearchIcon } from "@chakra-ui/icons";
 import PhotoDetailsModal from "./PhotoDetailsModal";
 import PhotoTable from "./components/PhotoTable";
 import Pagination from "./components/Pagination";
 import FilterModal from "./FilterModal";
+import FilterBar from "./components/FilterBar";
 import PageHeader from "./components/PageHeader";
 import useBatchImport from "./hooks/useBatchImport";
 import { apiUrl } from "./api";
@@ -229,61 +229,11 @@ export default function TableView({ onOpen }) {
                     borderColor="gray.300"
                 />
 
-                {/* Filter Button */}
-                <HStack spacing={2}>
-                    <Button
-                        onClick={onFilterModalOpen}
-                        size="sm"
-                        variant={filters.length > 0 ? "solid" : "outline"}
-                        colorScheme={filters.length > 0 ? "blue" : "gray"}
-                    >
-                        Filters
-                        {filters.length > 0 && (
-                            <Badge ml={2} colorScheme="gray">
-                                {filters.reduce((sum, f) => sum + (f.values || []).length, 0)}
-                            </Badge>
-                        )}
-                    </Button>
-                </HStack>
-
-                {/* Active Filter Badges */}
-                {filters.length > 0 && (
-                    <>
-                        <Divider
-                            orientation="vertical"
-                            height="40px"
-                            borderColor="gray.300"
-                        />
-                        <HStack wrap="wrap" spacing={2}>
-                            {filters.flatMap((filter) =>
-                                (filter.values || []).map((value) => (
-                                    <Badge
-                                        key={`${filter.type}-${value}`}
-                                        as="button"
-                                        colorScheme="gray"
-                                        px={2}
-                                        py={1}
-                                        fontSize="xs"
-                                        display="flex"
-                                        alignItems="center"
-                                        gap={1}
-                                        cursor="pointer"
-                                        onClick={() => handleRemoveFilter(filter.type, value)}
-                                        transition="all 0.2s"
-                                        _hover={{
-                                            bg: "gray.400",
-                                            color: "white",
-                                        }}
-                                        aria-label={`Remove ${filter.type}: ${value} filter`}
-                                    >
-                                        {filter.type}: {value}
-                                        <CloseIcon w={2} h={2} ml={1} />
-                                    </Badge>
-                                ))
-                            )}
-                        </HStack>
-                    </>
-                )}
+                <FilterBar
+                    filters={filters}
+                    onOpenModal={onFilterModalOpen}
+                    onRemoveFilter={handleRemoveFilter}
+                />
             </PageHeader>
 
             {/* Content Area */}

@@ -20,12 +20,15 @@ import {
 } from "@chakra-ui/react";
 import { CloseIcon } from "@chakra-ui/icons";
 
+const ALL_FIELDS = ["status", "municipality", "initials"];
+
 export default function FilterModal({
     isOpen,
     onClose,
     filters,
     onApplyFilters,
     filterOptions,
+    fields = ALL_FIELDS,
 }) {
     const [statusFilters, setStatusFilters] = useState([]);
     const [municipalityFilters, setMunicipalityFilters] = useState([]);
@@ -116,26 +119,32 @@ export default function FilterModal({
                             within a field use OR logic.
                         </Text>
 
-                        <CheckboxSection
-                            label="Status"
-                            options={filterOptions.statuses}
-                            value={statusFilters}
-                            onChange={setStatusFilters}
-                        />
+                        {fields.includes("status") && (
+                            <CheckboxSection
+                                label="Status"
+                                options={filterOptions.statuses}
+                                value={statusFilters}
+                                onChange={setStatusFilters}
+                            />
+                        )}
 
-                        <CheckboxSection
-                            label="Municipality"
-                            options={filterOptions.municipalities}
-                            value={municipalityFilters}
-                            onChange={setMunicipalityFilters}
-                        />
+                        {fields.includes("municipality") && (
+                            <CheckboxSection
+                                label="Municipality"
+                                options={filterOptions.municipalities}
+                                value={municipalityFilters}
+                                onChange={setMunicipalityFilters}
+                            />
+                        )}
 
-                        <CheckboxSection
-                            label="Initials"
-                            options={filterOptions.initials}
-                            value={initialsFilters}
-                            onChange={setInitialsFilters}
-                        />
+                        {fields.includes("initials") && (
+                            <CheckboxSection
+                                label="Initials"
+                                options={filterOptions.initials}
+                                value={initialsFilters}
+                                onChange={setInitialsFilters}
+                            />
+                        )}
 
                         {activeFilterCount > 0 && (
                             <Box mt={2}>

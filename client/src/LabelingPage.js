@@ -6,14 +6,12 @@ import {
     Text,
     Spinner,
     useToast,
-    Select,
     HStack,
     useDisclosure,
     Modal,
     ModalOverlay,
     ModalContent,
     ModalBody,
-    Progress,
     VStack,
     Tabs,
     TabList,
@@ -33,6 +31,8 @@ import {
 } from "@chakra-ui/icons";
 import AddModal from "./AddModal";
 import PhotoDetailsModal from "./PhotoDetailsModal";
+import FilterModal from "./FilterModal";
+import FilterBar from "./components/FilterBar";
 import CsvToJsonConverter from "./csvToJson";
 import GeminiConverter from "./GeminiConverter";
 import PhotoTable from "./components/PhotoTable";
@@ -40,7 +40,6 @@ import Pagination from "./components/Pagination";
 import PageHeader from "./components/PageHeader";
 import usePhotoActions from "./hooks/usePhotoActions";
 import useBatchImport from "./hooks/useBatchImport";
-import { FILTER_TYPES, MY_PHOTOS_FILTER_TYPES } from "./constants";
 import { apiUrl } from "./api";
 
 export default function LabelingPage({ user }) {
@@ -58,10 +57,8 @@ export default function LabelingPage({ user }) {
     const [skippedTotalCount, setSkippedTotalCount] = useState(0);
     const [skippedData, setSkippedData] = useState([]);
     const [sortOrder, setSortOrder] = useState("asc");
-    const [unclaimedFilterType, setUnclaimedFilterType] = useState("");
-    const [unclaimedFilterValue, setUnclaimedFilterValue] = useState("");
-    const [claimedFilterType, setClaimedFilterType] = useState("status");
-    const [claimedFilterValue, setClaimedFilterValue] = useState("claimed");
+    const [unclaimedFilters, setUnclaimedFilters] = useState([]);
+    const [claimedFilters, setClaimedFilters] = useState([{ type: "status", values: ["claimed"] }]);
     const [selectedPhoto, setSelectedPhoto] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
     const [viewPhoto, setViewPhoto] = useState(null);
@@ -74,6 +71,16 @@ export default function LabelingPage({ user }) {
         isOpen: isViewModalOpen,
         onOpen: onViewModalOpen,
         onClose: onViewModalClose,
+    } = useDisclosure();
+    const {
+        isOpen: isUnclaimedFilterOpen,
+        onOpen: onUnclaimedFilterOpen,
+        onClose: onUnclaimedFilterClose,
+    } = useDisclosure();
+    const {
+        isOpen: isClaimedFilterOpen,
+        onOpen: onClaimedFilterOpen,
+        onClose: onClaimedFilterClose,
     } = useDisclosure();
     const [filterOptions, setFilterOptions] = useState({
         municipalities: [],
@@ -126,12 +133,8 @@ export default function LabelingPage({ user }) {
 
     const fetchUnclaimedData = async (page) => {
         try {
-            const queryParams = new URLSearchParams({
-                page,
-                limit: 10,
-                sortOrder,
-                ...(unclaimedFilterType && unclaimedFilterValue && { filterType: unclaimedFilterType, filterValue: unclaimedFilterValue }),
-            });
+            const queryParams = new URLSearchParams({ page, limit: 10, sortOrder });
+            if (unclaimedFilters.length > 0) queryParams.set("filters", JSON.stringify(unclaimedFilters));
 
             const response = await fetch(
                 `${apiUrl("/api/photos/unclaimed")}?${queryParams}`,
@@ -162,12 +165,8 @@ export default function LabelingPage({ user }) {
 
     const fetchClaimedData = async (page) => {
         try {
-            const queryParams = new URLSearchParams({
-                page,
-                limit: 10,
-                sortOrder,
-                ...(claimedFilterType && claimedFilterValue && { filterType: claimedFilterType, filterValue: claimedFilterValue }),
-            });
+            const queryParams = new URLSearchParams({ page, limit: 10, sortOrder });
+            if (claimedFilters.length > 0) queryParams.set("filters", JSON.stringify(claimedFilters));
 
             const response = await fetch(
                 `${apiUrl("/api/photos/my-claimed")}?${queryParams}`,
@@ -240,7 +239,7 @@ export default function LabelingPage({ user }) {
             setLoading(false);
         };
         fetchData();
-    }, [unclaimedPage, claimedPage, skippedPage, sortOrder, unclaimedFilterType, unclaimedFilterValue, claimedFilterType, claimedFilterValue]);
+    }, [unclaimedPage, claimedPage, skippedPage, sortOrder, unclaimedFilters, claimedFilters]);
 
 
     const handleSelectPhoto = (photoId) => {
@@ -300,39 +299,36 @@ export default function LabelingPage({ user }) {
         setSkippedPage(1);
     };
 
-    const handleUnclaimedFilterTypeChange = (e) => {
-        setUnclaimedFilterType(e.target.value);
-        setUnclaimedFilterValue("");
+    const handleApplyUnclaimedFilters = (newFilters) => {
+        setUnclaimedFilters(newFilters);
         setUnclaimedPage(1);
     };
 
-    const handleUnclaimedFilterValueChange = (e) => {
-        setUnclaimedFilterValue(e.target.value);
+    const handleRemoveUnclaimedFilter = (type, value) => {
+        setUnclaimedFilters((prev) =>
+            prev.map((f) => {
+                if (f.type !== type) return f;
+                const values = (f.values || []).filter((v) => v !== value);
+                return values.length > 0 ? { ...f, values } : null;
+            }).filter(Boolean)
+        );
         setUnclaimedPage(1);
     };
 
-    const handleClaimedFilterTypeChange = (e) => {
-        setClaimedFilterType(e.target.value);
-        setClaimedFilterValue("");
+    const handleApplyClaimedFilters = (newFilters) => {
+        setClaimedFilters(newFilters);
         setClaimedPage(1);
     };
 
-    const handleClaimedFilterValueChange = (e) => {
-        setClaimedFilterValue(e.target.value);
+    const handleRemoveClaimedFilter = (type, value) => {
+        setClaimedFilters((prev) =>
+            prev.map((f) => {
+                if (f.type !== type) return f;
+                const values = (f.values || []).filter((v) => v !== value);
+                return values.length > 0 ? { ...f, values } : null;
+            }).filter(Boolean)
+        );
         setClaimedPage(1);
-    };
-
-    const getFilterOptions = (filterType) => {
-        switch (filterType) {
-            case "municipality":
-                return filterOptions.municipalities;
-            case "initials":
-                return filterOptions.initials;
-            case "status":
-                return filterOptions.statuses;
-            default:
-                return [];
-        }
     };
 
     if (loading) {
@@ -447,9 +443,6 @@ export default function LabelingPage({ user }) {
                         <Flex justify="space-between" align="center" mb={4}>
                             <Text fontSize="md" color="gray.600">
                                 {unclaimedTotalCount} unclaimed photos available
-                                {unclaimedFilterType &&
-                                    unclaimedFilterValue &&
-                                    ` with ${unclaimedFilterType} "${unclaimedFilterValue}"`}
                             </Text>
                             <HStack spacing={2}>
                                 <Button
@@ -458,8 +451,7 @@ export default function LabelingPage({ user }) {
                                     onClick={handleSelectAll}
                                     isDisabled={unclaimedData.length === 0}
                                 >
-                                    {selectedPhotos.length ===
-                                    unclaimedData.length
+                                    {selectedPhotos.length === unclaimedData.length
                                         ? "Deselect All"
                                         : "Select All"}
                                 </Button>
@@ -474,34 +466,13 @@ export default function LabelingPage({ user }) {
                             </HStack>
                         </Flex>
 
-                        <HStack spacing={4} mb={4}>
-                            <Select
-                                placeholder="Filter by"
-                                value={unclaimedFilterType}
-                                onChange={handleUnclaimedFilterTypeChange}
-                                width="200px"
-                            >
-                                {FILTER_TYPES.map((type) => (
-                                    <option key={type.value} value={type.value}>
-                                        {type.label}
-                                    </option>
-                                ))}
-                            </Select>
-                            {unclaimedFilterType && (
-                                <Select
-                                    placeholder="Select value"
-                                    value={unclaimedFilterValue}
-                                    onChange={handleUnclaimedFilterValueChange}
-                                    width="200px"
-                                >
-                                    {getFilterOptions(unclaimedFilterType).map((value) => (
-                                        <option key={value} value={value}>
-                                            {value}
-                                        </option>
-                                    ))}
-                                </Select>
-                            )}
-                        </HStack>
+                        <Box mb={4}>
+                            <FilterBar
+                                filters={unclaimedFilters}
+                                onOpenModal={onUnclaimedFilterOpen}
+                                onRemoveFilter={handleRemoveUnclaimedFilter}
+                            />
+                        </Box>
 
                         <PhotoTable
                             data={unclaimedData}
@@ -536,39 +507,15 @@ export default function LabelingPage({ user }) {
                     <TabPanel>
                         <Text fontSize="md" color="gray.600" mb={4}>
                             {claimedTotalCount} photos claimed by you
-                            {claimedFilterType &&
-                                claimedFilterValue &&
-                                ` with ${claimedFilterType} "${claimedFilterValue}"`}
                         </Text>
 
-                        <HStack spacing={4} mb={4}>
-                            <Select
-                                placeholder="Filter by"
-                                value={claimedFilterType}
-                                onChange={handleClaimedFilterTypeChange}
-                                width="200px"
-                            >
-                                {MY_PHOTOS_FILTER_TYPES.map((type) => (
-                                    <option key={type.value} value={type.value}>
-                                        {type.label}
-                                    </option>
-                                ))}
-                            </Select>
-                            {claimedFilterType && (
-                                <Select
-                                    placeholder="Select value"
-                                    value={claimedFilterValue}
-                                    onChange={handleClaimedFilterValueChange}
-                                    width="200px"
-                                >
-                                    {getFilterOptions(claimedFilterType).map((value) => (
-                                        <option key={value} value={value}>
-                                            {value}
-                                        </option>
-                                    ))}
-                                </Select>
-                            )}
-                        </HStack>
+                        <Box mb={4}>
+                            <FilterBar
+                                filters={claimedFilters}
+                                onOpenModal={onClaimedFilterOpen}
+                                onRemoveFilter={handleRemoveClaimedFilter}
+                            />
+                        </Box>
 
                         <PhotoTable
                             data={claimedData}
@@ -677,6 +624,22 @@ export default function LabelingPage({ user }) {
                     isOpen={isViewModalOpen}
                     onClose={onViewModalClose}
                     photo={viewPhoto}
+                />
+                <FilterModal
+                    isOpen={isUnclaimedFilterOpen}
+                    onClose={onUnclaimedFilterClose}
+                    filters={unclaimedFilters}
+                    onApplyFilters={handleApplyUnclaimedFilters}
+                    filterOptions={filterOptions}
+                    fields={["municipality", "initials"]}
+                />
+                <FilterModal
+                    isOpen={isClaimedFilterOpen}
+                    onClose={onClaimedFilterClose}
+                    filters={claimedFilters}
+                    onApplyFilters={handleApplyClaimedFilters}
+                    filterOptions={filterOptions}
+                    fields={["municipality", "status"]}
                 />
                 </Box>
             </Tabs>
