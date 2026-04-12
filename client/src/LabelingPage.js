@@ -34,6 +34,7 @@ import {
 import AddModal from "./AddModal";
 import PhotoDetailsModal from "./PhotoDetailsModal";
 import CsvToJsonConverter from "./csvToJson";
+import GeminiConverter from "./GeminiConverter";
 import PhotoTable from "./components/PhotoTable";
 import Pagination from "./components/Pagination";
 import PageHeader from "./components/PageHeader";
@@ -381,10 +382,21 @@ export default function LabelingPage({ user }) {
 
                 {/* CSV Converter */}
                 <HStack spacing={2}>
-                    <CsvToJsonConverter 
+                    <CsvToJsonConverter
                         size="sm"
                         colorScheme="blue"
                     />
+                </HStack>
+
+                <Divider
+                    orientation="vertical"
+                    height="40px"
+                    borderColor="gray.300"
+                />
+
+                {/* Gemini JSONL Converter */}
+                <HStack spacing={2}>
+                    <GeminiConverter size="sm" colorScheme="blue" />
                 </HStack>
             </PageHeader>
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useToast } from "@chakra-ui/react";
+import { useToast, Box, Text, Alert, AlertIcon, AlertTitle, AlertDescription, CloseButton } from "@chakra-ui/react";
 import { apiUrl } from "../api";
 
 export default function useBatchImport({ onComplete } = {}) {
@@ -45,12 +45,76 @@ export default function useBatchImport({ onComplete } = {}) {
                             successCount = data.results.filter((r) => r.success).length;
                             errorCount = data.results.filter((r) => !r.success).length;
 
+                            const failures = data.results.filter((r) => !r.success);
+                            const errorSummary = {};
+                            failures.forEach((f) => {
+                                const msg = f.error || "Unknown error";
+                                errorSummary[msg] = (errorSummary[msg] || 0) + 1;
+                            });
+                            const errorLines = Object.entries(errorSummary)
+                                .map(([msg, count]) => `${count}x: ${msg}`)
+                                .join("\n");
+
+                            if (errorLines) {
+                                console.warn("Batch import failures:\n" + errorLines);
+                            }
+
+                            const status = successCount > 0 ? "success" : "error";
+                            const colorScheme = status === "success" ? "green" : "red";
+
                             toast({
-                                title: "Batch Import Complete",
-                                description: `Successfully imported ${successCount} photos. ${errorCount} failed.`,
-                                status: successCount > 0 ? "success" : "error",
-                                duration: 5000,
+                                duration: 15000,
                                 isClosable: true,
+                                render: ({ onClose }) => (
+                                    <Alert
+                                        status={status}
+                                        variant="solid"
+                                        borderRadius="md"
+                                        flexDirection="column"
+                                        alignItems="flex-start"
+                                        p={3}
+                                        gap={1}
+                                    >
+                                        <Box display="flex" width="100%" justifyContent="space-between" alignItems="center">
+                                            <Box display="flex" alignItems="center" gap={2}>
+                                                <AlertIcon m={0} />
+                                                <AlertTitle>Batch Import Complete</AlertTitle>
+                                            </Box>
+                                            <CloseButton onClick={onClose} size="sm" />
+                                        </Box>
+                                        <AlertDescription fontSize="sm">
+                                            {successCount} imported, {errorCount} failed.
+                                        </AlertDescription>
+                                        {errorLines && (
+                                            <Box as="details" width="100%" mt={1}>
+                                                <Box
+                                                    as="summary"
+                                                    fontSize="xs"
+                                                    cursor="pointer"
+                                                    opacity={0.85}
+                                                    _hover={{ opacity: 1 }}
+                                                    userSelect="none"
+                                                >
+                                                    Show failure reasons
+                                                </Box>
+                                                <Box
+                                                    as="pre"
+                                                    mt={2}
+                                                    p={2}
+                                                    fontSize="xs"
+                                                    bg="blackAlpha.300"
+                                                    borderRadius="sm"
+                                                    whiteSpace="pre-wrap"
+                                                    wordBreak="break-word"
+                                                    maxH="200px"
+                                                    overflowY="auto"
+                                                >
+                                                    {errorLines}
+                                                </Box>
+                                            </Box>
+                                        )}
+                                    </Alert>
+                                ),
                             });
 
                             if (onComplete) await onComplete();

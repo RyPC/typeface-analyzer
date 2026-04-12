@@ -49,3 +49,6 @@ env/
 .idea/
 *.swp
 *.swo
+
+# Claude Code (local user settings only; settings.json is project-level and should be committed)
+.claude/settings.local.json
