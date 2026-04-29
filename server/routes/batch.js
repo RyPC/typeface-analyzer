@@ -9,6 +9,17 @@ const { findPhotosSortedByLastUpdated } = require("../utils/photoListSort");
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+function parseRawBatchRecord(rawData) {
+    // Gemini format: { key, response: { candidates: [...] } }
+    if (rawData.key && rawData.response?.candidates) {
+        const text = rawData.response.candidates[0].content.parts.find(p => p.text)?.text;
+        return { custom_id: rawData.key, contentText: text };
+    }
+    // OpenAI/Claude format: { custom_id, response: { body: { choices: [...] } } }
+    const text = rawData.response?.body?.choices?.[0]?.message?.content;
+    return { custom_id: rawData.custom_id, contentText: text };
+}
+
 router.get("/next", async (req, res) => {
     try {
         const batchDataDir = path.join(__dirname, "../batch_data");
@@ -23,7 +34,9 @@ router.get("/next", async (req, res) => {
             return res.status(404).json({ message: "No data available in file" });
         }
         const rawData = JSON.parse(lines[0]);
-        const contentMatch = rawData.response.body.choices[0].message.content.match(/\|\|\|(.*?)\|\|\|/s);
+        const { custom_id, contentText } = parseRawBatchRecord(rawData);
+        rawData.custom_id = custom_id;
+        const contentMatch = contentText?.match(/\|\|\|(.*?)\|\|\|/s);
         if (!contentMatch) throw new Error("Could not find content between ||| markers");
         const parsedData = JSON.parse(contentMatch[1]);
         const transformedData = {
@@ -70,21 +83,23 @@ router.post("/import", upload.single("file"), async (req, res) => {
             let rawData;
             try {
                 rawData = JSON.parse(line);
+                const { custom_id, contentText } = parseRawBatchRecord(rawData);
+                rawData.custom_id = custom_id;
                 const existingDoc = await Photo.findOne({
                     $or: [
-                        { custom_id: { $regex: new RegExp(`^${rawData.custom_id}$`, "i") } },
-                        { id: { $regex: new RegExp(`^${rawData.custom_id}$`, "i") } },
+                        { custom_id: { $regex: new RegExp(`^${custom_id}$`, "i") } },
+                        { id: { $regex: new RegExp(`^${custom_id}$`, "i") } },
                     ],
                 });
                 if (existingDoc) {
                     results.push({
                         success: false,
-                        error: `Document with custom_id ${rawData.custom_id} already exists (case insensitive match)`,
-                        custom_id: rawData.custom_id,
+                        error: `Document with custom_id ${custom_id} already exists (case insensitive match)`,
+                        custom_id,
                     });
                     continue;
                 }
-                const contentMatch = rawData.response.body.choices[0].message.content.match(/\|\|\|(.*?)\|\|\|/s);
+                const contentMatch = contentText?.match(/\|\|\|(.*?)\|\|\|/s);
                 if (!contentMatch) throw new Error("Could not find content between ||| markers");
                 const parsedData = JSON.parse(contentMatch[1]);
                 const photo = new Photo({
