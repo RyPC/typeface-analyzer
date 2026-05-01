@@ -20,6 +20,39 @@ function parseRawBatchRecord(rawData) {
     return { custom_id: rawData.custom_id, contentText: text };
 }
 
+function extractBalancedJson(text) {
+    const start = text.indexOf("{");
+    if (start < 0) return null;
+    let depth = 0, inString = false, escaped = false;
+    for (let i = start; i < text.length; i++) {
+        const ch = text[i];
+        if (escaped) { escaped = false; continue; }
+        if (ch === "\\" && inString) { escaped = true; continue; }
+        if (ch === '"') { inString = !inString; continue; }
+        if (inString) continue;
+        if (ch === "{") depth++;
+        else if (ch === "}") { depth--; if (depth === 0) return text.slice(start, i + 1); }
+    }
+    return null;
+}
+
+function extractParsedData(contentText) {
+    if (!contentText) throw new Error("No content text found in record");
+    // Try |||...||| markers (OpenAI/Claude format)
+    const pipeMatch = contentText.match(/\|\|\|([\s\S]*?)\|\|\|/);
+    if (pipeMatch) {
+        const s = pipeMatch[1].trim();
+        const jsonStr = extractBalancedJson(s) ?? s;
+        return JSON.parse(jsonStr);
+    }
+    // Try any code fence block — extract balanced JSON within it
+    const codeMatch = contentText.match(/```[^\n]*\n([\s\S]*?)\n?```/);
+    const searchIn = codeMatch ? codeMatch[1] : contentText;
+    const jsonStr = extractBalancedJson(searchIn);
+    if (jsonStr) return JSON.parse(jsonStr);
+    throw new Error("Could not find JSON content in record");
+}
+
 router.get("/next", async (req, res) => {
     try {
         const batchDataDir = path.join(__dirname, "../batch_data");
@@ -36,9 +69,7 @@ router.get("/next", async (req, res) => {
         const rawData = JSON.parse(lines[0]);
         const { custom_id, contentText } = parseRawBatchRecord(rawData);
         rawData.custom_id = custom_id;
-        const contentMatch = contentText?.match(/\|\|\|(.*?)\|\|\|/s);
-        if (!contentMatch) throw new Error("Could not find content between ||| markers");
-        const parsedData = JSON.parse(contentMatch[1]);
+        const parsedData = extractParsedData(contentText);
         const transformedData = {
             imageUrl: `/images/${rawData.custom_id}`,
             formData: {
@@ -99,9 +130,7 @@ router.post("/import", upload.single("file"), async (req, res) => {
                     });
                     continue;
                 }
-                const contentMatch = contentText?.match(/\|\|\|(.*?)\|\|\|/s);
-                if (!contentMatch) throw new Error("Could not find content between ||| markers");
-                const parsedData = JSON.parse(contentMatch[1]);
+                const parsedData = extractParsedData(contentText);
                 const photo = new Photo({
                     id: rawData.custom_id,
                     custom_id: rawData.custom_id,

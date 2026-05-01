@@ -34,7 +34,6 @@ import PhotoDetailsModal from "./PhotoDetailsModal";
 import FilterModal from "./FilterModal";
 import FilterBar from "./components/FilterBar";
 import CsvToJsonConverter from "./csvToJson";
-import GeminiConverter from "./GeminiConverter";
 import PhotoTable from "./components/PhotoTable";
 import Pagination from "./components/Pagination";
 import PageHeader from "./components/PageHeader";
@@ -93,6 +92,7 @@ export default function LabelingPage({ user }) {
 
     // Add file input reference
     const fileInputRef = React.useRef();
+    const geminiFileInputRef = React.useRef();
 
     const { handleClaimPhoto, handleBatchClaim, handleUnclaimPhoto, handleSkipPhoto, handleReclaimPhoto } = usePhotoActions({
         onRefreshUnclaimed: () => fetchUnclaimedData(unclaimedPage),
@@ -362,7 +362,7 @@ export default function LabelingPage({ user }) {
 
             {/* Top Bar */}
             <PageHeader title="Photo Labeling">
-                {/* Import Batch Button */}
+                {/* Import Batch Buttons */}
                 <HStack spacing={2}>
                     <input
                         type="file"
@@ -377,7 +377,22 @@ export default function LabelingPage({ user }) {
                         colorScheme="blue"
                         onClick={() => fileInputRef.current.click()}
                     >
-                        Import Batch
+                        Import ChatGPT Batch
+                    </Button>
+                    <input
+                        type="file"
+                        accept=".jsonl"
+                        onChange={handleBatchImport}
+                        style={{ display: "none" }}
+                        ref={geminiFileInputRef}
+                    />
+                    <Button
+                        leftIcon={<RepeatIcon />}
+                        size="sm"
+                        colorScheme="blue"
+                        onClick={() => geminiFileInputRef.current.click()}
+                    >
+                        Import Gemini Batch
                     </Button>
                 </HStack>
 
@@ -395,16 +410,6 @@ export default function LabelingPage({ user }) {
                     />
                 </HStack>
 
-                <Divider
-                    orientation="vertical"
-                    height="40px"
-                    borderColor="gray.300"
-                />
-
-                {/* Gemini JSONL Converter */}
-                <HStack spacing={2}>
-                    <GeminiConverter size="sm" colorScheme="blue" />
-                </HStack>
             </PageHeader>
 
             {/* Content Area */}
